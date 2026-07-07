@@ -1,0 +1,137 @@
+---
+// The AI-authorship badge: an honest, one-glance label at the top of every post
+// saying how (or whether) AI was involved. Driven by the post's `aiUsage`
+// frontmatter. This is the thing that makes the blog different — radical
+// transparency about AI use.
+type AIUsage = 'handwritten' | 'dictated' | 'assisted';
+
+interface Props {
+	usage?: AIUsage;
+}
+
+const { usage } = Astro.props;
+
+const MAP: Record<AIUsage, { icon: string; label: string; detail: string }> = {
+	handwritten: {
+		icon: '✍️',
+		label: 'Written by hand',
+		detail: 'No AI. Every word here is mine.',
+	},
+	dictated: {
+		icon: '🎙️',
+		label: 'Spoken, AI-transcribed',
+		detail:
+			'I dictated this out loud; AI only turned speech into text. The thinking and the words are mine.',
+	},
+	assisted: {
+		icon: '🤖',
+		label: 'AI-assisted',
+		detail: 'I directed the piece and edited every line; AI helped draft it.',
+	},
+};
+
+// No badge for pages that don't declare AI usage (e.g. the About page).
+const info = usage ? MAP[usage] : undefined;
+---
+
+{
+	info && (
+		<span class="ai-badge" data-usage={usage}>
+			<span class="ai-badge__icon" aria-hidden="true">
+				{info.icon}
+			</span>
+			<span class="ai-badge__label">{info.label}</span>
+			<span class="ai-badge__detail">{info.detail}</span>
+		</span>
+	)
+}
+
+<style>
+	.ai-badge {
+		--badge-fg: rgb(var(--gray-dark));
+		--badge-bg: rgb(var(--gray-light));
+		--badge-ring: rgba(var(--gray), 0.35);
+		display: inline-flex;
+		align-items: center;
+		gap: 0.45em;
+		padding: 0.3em 0.7em;
+		border: 1px solid var(--badge-ring);
+		border-radius: 999px;
+		background: var(--badge-bg);
+		color: var(--badge-fg);
+		font-size: 0.8rem;
+		font-weight: 600;
+		line-height: 1;
+		letter-spacing: 0.01em;
+		position: relative;
+		cursor: default;
+		user-select: none;
+	}
+
+	/* Each mode gets its own accent so it reads at a glance. */
+	.ai-badge[data-usage='handwritten'] {
+		--badge-ring: rgba(34, 139, 87, 0.4);
+		--badge-bg: rgba(34, 139, 87, 0.1);
+		--badge-fg: rgb(28, 110, 70);
+	}
+	.ai-badge[data-usage='dictated'] {
+		--badge-ring: rgba(37, 99, 235, 0.4);
+		--badge-bg: rgba(37, 99, 235, 0.1);
+		--badge-fg: rgb(30, 78, 190);
+	}
+	.ai-badge[data-usage='assisted'] {
+		--badge-ring: rgba(217, 119, 6, 0.45);
+		--badge-bg: rgba(217, 119, 6, 0.12);
+		--badge-fg: rgb(170, 92, 4);
+	}
+
+	.ai-badge__icon {
+		font-size: 0.95em;
+	}
+
+	/* The explanation shows on hover/focus as a small tooltip. */
+	.ai-badge__detail {
+		position: absolute;
+		top: calc(100% + 0.5em);
+		left: 0;
+		width: max-content;
+		max-width: 20rem;
+		padding: 0.6em 0.8em;
+		border-radius: 0.5rem;
+		background: rgb(var(--black));
+		color: white;
+		font-size: 0.75rem;
+		font-weight: 400;
+		line-height: 1.4;
+		letter-spacing: 0;
+		opacity: 0;
+		transform: translateY(-0.25em);
+		pointer-events: none;
+		transition:
+			opacity 0.15s ease,
+			transform 0.15s ease;
+		z-index: 10;
+	}
+
+	.ai-badge:hover .ai-badge__detail,
+	.ai-badge:focus-within .ai-badge__detail {
+		opacity: 1;
+		transform: translateY(0);
+	}
+
+	@media (prefers-color-scheme: dark) {
+		.ai-badge[data-usage='handwritten'] {
+			--badge-fg: rgb(110, 220, 160);
+		}
+		.ai-badge[data-usage='dictated'] {
+			--badge-fg: rgb(140, 180, 255);
+		}
+		.ai-badge[data-usage='assisted'] {
+			--badge-fg: rgb(240, 180, 90);
+		}
+		.ai-badge__detail {
+			background: rgb(230, 230, 235);
+			color: rgb(20, 20, 25);
+		}
+	}
+</style>

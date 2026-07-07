@@ -1,0 +1,199 @@
+/*
+  Design system for sifxtreme.com.
+  Started from Bear Blog's minimal base, then rebuilt: warm paper light theme,
+  deep dark theme, a single warm-orange accent, and typography that gets out of
+  the way. Colors are stored as "R, G, B" triplets so they can be used with
+  rgb()/rgba() and flipped wholesale for dark mode.
+*/
+
+:root {
+	--accent: #ea580c;
+	--accent-dark: #c2410c;
+	--accent-rgb: 234, 88, 12;
+
+	--black: 18, 18, 22; /* primary text / headings (flips light in dark mode) */
+	--gray: 110, 110, 122; /* muted text */
+	--gray-light: 233, 231, 226; /* subtle fills, inline code bg */
+	--gray-dark: 44, 44, 52; /* body text (flips light in dark mode) */
+
+	--bg: 253, 251, 248; /* warm paper */
+	--surface: 255, 255, 255;
+	--border: 226, 223, 217;
+
+	--box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 6px 20px rgba(0, 0, 0, 0.06);
+}
+
+@media (prefers-color-scheme: dark) {
+	:root {
+		--accent: #fb923c;
+		--accent-dark: #fdba74;
+		--accent-rgb: 251, 146, 60;
+
+		--black: 240, 240, 245;
+		--gray: 148, 148, 160;
+		--gray-light: 36, 36, 43;
+		--gray-dark: 214, 214, 224;
+
+		--bg: 15, 15, 18;
+		--surface: 23, 23, 28;
+		--border: 44, 44, 53;
+
+		--box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 6px 20px rgba(0, 0, 0, 0.45);
+	}
+}
+
+html {
+	color-scheme: light dark;
+}
+
+body {
+	font-family:
+		var(--font-atkinson), ui-sans-serif, system-ui, -apple-system, sans-serif;
+	margin: 0;
+	padding: 0;
+	text-align: left;
+	background: rgb(var(--bg));
+	color: rgb(var(--gray-dark));
+	font-size: 19px;
+	line-height: 1.7;
+	word-wrap: break-word;
+	overflow-wrap: break-word;
+	-webkit-font-smoothing: antialiased;
+	text-rendering: optimizeLegibility;
+}
+
+main {
+	width: 680px;
+	max-width: calc(100% - 2em);
+	margin: auto;
+	padding: 3.5em 1em;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+	margin: 0 0 0.5rem 0;
+	color: rgb(var(--black));
+	line-height: 1.15;
+	letter-spacing: -0.02em;
+	font-weight: 700;
+}
+h1 {
+	font-size: 2.6rem;
+}
+h2 {
+	font-size: 1.85rem;
+	margin-top: 1.8em;
+}
+h3 {
+	font-size: 1.4rem;
+	margin-top: 1.6em;
+}
+h4 {
+	font-size: 1.15rem;
+}
+
+strong,
+b {
+	font-weight: 700;
+	color: rgb(var(--black));
+}
+
+a {
+	color: var(--accent);
+	text-decoration: none;
+	text-underline-offset: 0.2em;
+	text-decoration-thickness: 1px;
+	transition: color 0.15s ease;
+}
+a:hover {
+	color: var(--accent-dark);
+	text-decoration: underline;
+}
+
+p {
+	margin-bottom: 1.2em;
+}
+.prose p {
+	margin-bottom: 1.5em;
+}
+
+img {
+	max-width: 100%;
+	height: auto;
+	border-radius: 10px;
+}
+
+/* Inline code — Expressive Code handles fenced blocks. */
+code {
+	padding: 0.15em 0.4em;
+	font-size: 0.86em;
+	background-color: rgb(var(--gray-light));
+	border-radius: 4px;
+	font-family: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, monospace;
+}
+pre > code {
+	all: unset;
+}
+
+blockquote {
+	border-left: 3px solid var(--accent);
+	padding: 0.1em 0 0.1em 1.2em;
+	margin: 1.5em 0;
+	color: rgb(var(--gray));
+	font-style: italic;
+}
+blockquote p:last-child {
+	margin-bottom: 0;
+}
+
+hr {
+	border: none;
+	border-top: 1px solid rgb(var(--border));
+	margin: 2.5em 0;
+}
+
+table {
+	width: 100%;
+	border-collapse: collapse;
+}
+th,
+td {
+	border-bottom: 1px solid rgb(var(--border));
+	padding: 0.5em 0.6em;
+	text-align: left;
+}
+
+textarea,
+input {
+	font-size: 16px;
+}
+
+@media (max-width: 720px) {
+	body {
+		font-size: 18px;
+	}
+	main {
+		padding: 2em 1em;
+	}
+	h1 {
+		font-size: 2.1rem;
+	}
+}
+
+.sr-only {
+	border: 0;
+	padding: 0;
+	margin: 0;
+	position: absolute !important;
+	height: 1px;
+	width: 1px;
+	overflow: hidden;
+	clip: rect(1px 1px 1px 1px);
+	clip: rect(1px, 1px, 1px, 1px);
+	clip-path: inset(50%);
+	white-space: nowrap;
+}

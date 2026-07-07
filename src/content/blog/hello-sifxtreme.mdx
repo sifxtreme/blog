@@ -1,0 +1,50 @@
+---
+title: 'This blog tells you how AI was used'
+description: 'A starter post that shows the AI-authorship badge, code highlighting, and the general shape of things. Replace it with your own.'
+pubDate: '2026-07-07'
+tags: ['meta', 'ai', 'writing']
+aiUsage: 'assisted'
+---
+
+> This is a placeholder post. It exists to show the design working — the badge
+> above, the code blocks below, the type. Delete it and write your own.
+
+Every post here carries a small badge at the top saying how AI was involved:
+
+- **✍️ Written by hand** — no AI, every word is mine.
+- **🎙️ Spoken, AI-transcribed** — I dictated it; AI only turned speech to text.
+- **🤖 AI-assisted** — I directed and edited it; AI helped draft.
+
+It's set with one line of frontmatter, so it can never drift from the truth:
+
+```yaml title="src/content/blog/some-post.mdx" {5}
+---
+title: 'A post about something real'
+description: 'One honest line.'
+pubDate: '2026-07-07'
+aiUsage: 'handwritten'
+---
+```
+
+## Code looks the way it does in your editor
+
+Fenced code is rendered with [Expressive Code](https://expressive-code.com/) —
+the same Shiki highlighter VS Code uses. You get titles, line highlighting, and
+a copy button for free:
+
+```ts title="cf.ts" {4-6} ins={9}
+const BASE = 'https://api.cloudflare.com/client/v4';
+
+async function cf(method: string, path: string, token: string) {
+	const res = await fetch(BASE + path, {
+		method,
+		headers: { Authorization: `Bearer ${token}` },
+	});
+	if (!res.ok) throw new Error(`Cloudflare ${res.status}`);
+	return res.json();
+}
+```
+
+Images work too — drop a file in `src/assets/` and reference it, or set a
+`heroImage` in the frontmatter. That's the whole system: write Markdown, pick
+how honest you're being about the robot, ship.
