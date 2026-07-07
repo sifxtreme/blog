@@ -3,4 +3,4 @@
 
 export const SITE_TITLE = 'Asif Ahmed';
 export const SITE_DESCRIPTION =
-	'I build software with AI at a venture firm. Notes on what actually works.';
+	"I help people and solve problems. Lately that's building software with AI at a venture firm.";
