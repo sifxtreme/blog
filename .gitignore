@@ -20,5 +20,8 @@ pnpm-debug.log*
 # macOS-specific files
 .DS_Store
 
+# private writing backlog — pipeline, not for the public repo
+IDEAS.md
+
 # jetbrains setting folder
 .idea/
