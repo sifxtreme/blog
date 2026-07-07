@@ -9,8 +9,9 @@ import Header from '../components/Header.astro';
 
 type Props = CollectionEntry<'blog'>['data'];
 
-const { title, description, pubDate, updatedDate, heroImage, aiUsage, tags } =
+const { title, description, pubDate, updatedDate, heroImage, aiUsage, tags, link } =
 	Astro.props;
+const linkHost = link ? new URL(link).hostname.replace(/^www\./, '') : null;
 ---
 
 <html lang="en">
@@ -71,6 +72,12 @@ const { title, description, pubDate, updatedDate, heroImage, aiUsage, tags } =
 				border-radius: 999px;
 				padding: 0.2em 0.7em;
 			}
+			.source-link {
+				display: inline-block;
+				margin-top: 1em;
+				font-weight: 600;
+				font-size: 0.95rem;
+			}
 			.title hr {
 				margin-top: 1.5em;
 			}
@@ -98,6 +105,13 @@ const { title, description, pubDate, updatedDate, heroImage, aiUsage, tags } =
 							}
 						</div>
 						<h1>{title}</h1>
+						{
+							link && (
+								<a class="source-link" href={link} target="_blank" rel="noopener">
+									↗ Read the original on {linkHost}
+								</a>
+							)
+						}
 						{
 							tags && tags.length > 0 && (
 								<div class="tags">

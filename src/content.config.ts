@@ -21,6 +21,9 @@ const blog = defineCollection({
 			aiUsage: z
 				.enum(['handwritten', 'dictated', 'assisted'])
 				.default('handwritten'),
+			// Optional: makes this a "link post" (linkblog style). When set, the
+			// title links out to this URL and the post still gets its own permalink.
+			link: z.string().url().optional(),
 		}),
 });
 

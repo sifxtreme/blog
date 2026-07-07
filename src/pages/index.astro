@@ -41,15 +41,25 @@ const posts = (await getCollection('blog')).sort(
 				<h2>Writing</h2>
 				<ul>
 					{
-						posts.map((post) => (
-							<li>
-								<a href={`/blog/${post.id}/`}>
-									<span class="post-title">{post.data.title}</span>
-									<FormattedDate date={post.data.pubDate} />
-								</a>
-								<p class="post-desc">{post.data.description}</p>
-							</li>
-						))
+						posts.map((post) => {
+							const isLink = Boolean(post.data.link);
+							const permalink = `/blog/${post.id}/`;
+							return (
+								<li>
+									<a
+										href={isLink ? post.data.link : permalink}
+										{...(isLink ? { target: '_blank', rel: 'noopener' } : {})}
+									>
+										<span class="post-title">
+											{post.data.title}
+											{isLink && <span class="ext"> ↗</span>}
+										</span>
+										<FormattedDate date={post.data.pubDate} />
+									</a>
+									<p class="post-desc">{post.data.description}</p>
+								</li>
+							);
+						})
 					}
 				</ul>
 			</section>
@@ -126,6 +136,10 @@ const posts = (await getCollection('blog')).sort(
 		}
 		.writing li a:hover .post-title {
 			color: var(--accent);
+		}
+		.ext {
+			color: var(--accent);
+			font-size: 0.85em;
 		}
 		.writing li a :global(time) {
 			color: rgb(var(--gray));
