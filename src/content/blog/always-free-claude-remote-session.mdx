@@ -1,0 +1,82 @@
+---
+title: 'Always a free Claude remote session'
+description: 'I want a clean Claude Code session always waiting on my phone, separate from whatever I am deep in. Here is the launchd agent that guarantees one.'
+pubDate: '2026-07-07'
+tags: ['claude', 'automation', 'macos']
+aiUsage: 'assisted'
+---
+
+I always want a FREE Claude Code session waiting on my phone. Not the one I'm already deep in. A clean one, standing by, for the next thing. This is the small agent that guarantees it.
+
+## Why "free" matters
+
+A session is FREE when it's clean: a fresh `claude` bridged to my phone with barely any of my own prompts in it. The moment I go back and forth with a session and it crosses about three messages, that session is committed. It has context, it's mid-task, it's doing something I actually care about. That's the LAST session I want to hijack for a random new idea.
+
+So I want two things at once. The session I'm in the middle of, doing real work. And a clean one on standby for whatever comes next. If I only keep one session around and it's the busy one, then the moment I reach for a fresh session on my phone, there isn't one. Spinning up a new one from mobile is friction, and it drags me out of whatever I was doing.
+
+So I keep a clean one on standby at all times, separate from whatever I'm working on.
+
+## Why I'm on my phone at all
+
+Files are king. I keep almost everything as plain files on my computer, not in Claude memories or ChatGPT memories: notes, runbooks, code, half-finished ideas. When I'm away from my desk I still want to work against those files, so I pull up a Claude Code session on my phone and dictate. Claude runs on my Mac, against my real files, and I talk to it from anywhere. My machine is always plugged in, so it's always there to answer.
+
+The full recipe is [on GitHub](https://gist.github.com/sifxtreme/878a4d1d6652334baa5fd34979c97ce8). Here's how the standby part works.
+
+## A remote session is just a file
+
+A Remote Control session is a local `claude` process bridged to your phone. When it bridges, it writes a `bridgeSessionId` into `~/.claude/sessions/<pid>.json`, and that id is the URL you open:
+
+```
+claude.ai/code/<bridgeSessionId>
+```
+
+So finding my live remote sessions is just reading those files and keeping the ones whose process is still alive.
+
+## Counting "free" cheaply
+
+I call a session FREE if it has fewer than three of my own prompts. The tricky part is the counting. In a transcript, tool results and injected meta entries are ALSO role `user`, so a naive count overcounts by about 5x. The manager only counts real `type:user` lines that aren't `isMeta` and aren't a `tool_result`, and it early-exits at three, so even a giant transcript is cheap to check.
+
+```python title="pool_manager.py" {6,9,11-14}
+def count_prompts(sid, cap=3):
+    tx = transcript_path(sid)
+    n = 0
+    with open(tx, "r", errors="ignore") as f:
+        for line in f:
+            if '"type":"user"' not in line:       # cheap pre-filter
+                continue
+            d = json.loads(line)
+            if d.get("type") != "user" or d.get("isMeta"):
+                continue
+            content = d.get("message", {}).get("content")
+            if isinstance(content, list) and any(
+                b.get("type") == "tool_result" for b in content if isinstance(b, dict)
+            ):
+                continue                          # tool result, not something I typed
+            n += 1
+            if n >= cap:                          # ">= 3" is all we need to know
+                break
+    return n
+```
+
+## Spawn one when none is free
+
+Every 15 minutes the agent reaps dead shells, counts prompts on each live session, and if nothing is free, spawns a replacement. The spawn runs detached inside tmux with a login shell, so the new `claude` inherits my full PATH and node environment. A headless `claude --remote-control` still registers a bridge and shows up on the phone.
+
+```python title="pool_manager.py"
+def spawn():
+    name = "claude-free-" + str(int(time.time()))
+    subprocess.run(
+        ["tmux", "new-session", "-d", "-s", name, "-c", WORKDIR,
+         "zsh", "-lc", "claude --remote-control standby"],
+        check=True,
+    )
+    return name
+```
+
+Two rules keep it safe. It NEVER kills a live session; it only spawns when zero are free. And the only thing it ever destroys is a leftover tmux shell whose `claude` already exited. Any session I start by hand counts as the standby too, so it won't pile up redundant ones.
+
+## The result
+
+I open my phone and there's always a clean Claude session waiting, bridged to my Mac. I dictate the next thing, and the session I was already deep in stays untouched.
+
+The whole thing is one Python file and a launchd plist. The recipe is [here](https://gist.github.com/sifxtreme/878a4d1d6652334baa5fd34979c97ce8).
