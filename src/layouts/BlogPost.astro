@@ -3,11 +3,16 @@ import { Image } from 'astro:assets';
 import type { CollectionEntry } from 'astro:content';
 import AIBadge from '../components/AIBadge.astro';
 import BaseHead from '../components/BaseHead.astro';
+import CopyForLLM from '../components/CopyForLLM.astro';
 import Footer from '../components/Footer.astro';
 import FormattedDate from '../components/FormattedDate.astro';
 import Header from '../components/Header.astro';
 
-type Props = CollectionEntry<'blog'>['data'] & { ogImagePath?: string };
+type Props = CollectionEntry<'blog'>['data'] & {
+	ogImagePath?: string;
+	slug?: string;
+	body?: string;
+};
 
 const {
 	title,
@@ -19,8 +24,13 @@ const {
 	tags,
 	link,
 	ogImagePath,
+	slug,
+	body,
 } = Astro.props;
 const linkHost = link ? new URL(link).hostname.replace(/^www\./, '') : null;
+const canonicalUrl = slug
+	? new URL(`/blog/${slug}/`, Astro.site).href
+	: undefined;
 ---
 
 <html lang="en">
@@ -72,6 +82,11 @@ const linkHost = link ? new URL(link).hostname.replace(/^www\./, '') : null;
 			.last-updated-on {
 				font-style: italic;
 			}
+			/* Push the Copy-for-LLM button to the right of the meta row on wide
+			   screens; it wraps under on narrow ones. */
+			.copy-slot {
+				margin-left: auto;
+			}
 			.tags {
 				display: flex;
 				flex-wrap: wrap;
@@ -113,6 +128,18 @@ const linkHost = link ? new URL(link).hostname.replace(/^www\./, '') : null;
 								updatedDate && (
 									<span class="last-updated-on">
 										Updated <FormattedDate date={updatedDate} />
+									</span>
+								)
+							}
+							{
+								body && canonicalUrl && (
+									<span class="copy-slot">
+										<CopyForLLM
+											title={title}
+											description={description}
+											url={canonicalUrl}
+											body={body}
+										/>
 									</span>
 								)
 							}

@@ -1,0 +1,150 @@
+---
+// A "Copy for LLM" button. Copies the post as clean Markdown (title, source
+// link, and body) to the clipboard so a reader can paste it straight into an
+// LLM. Fits the "files are king / text is cheap" ethos: the post is just text,
+// take it with you.
+interface Props {
+	title: string;
+	description?: string;
+	url: string;
+	body: string;
+}
+
+const { title, description, url, body } = Astro.props;
+
+// Strip any MDX import/export lines so what lands in the clipboard is plain
+// Markdown, not source with JSX plumbing. These posts are Markdown-in-MDX, so
+// this is usually a no-op, but it keeps the payload clean if that ever changes.
+const cleanBody = body
+	.split('\n')
+	.filter((line) => !/^\s*(import|export)\s/.test(line))
+	.join('\n')
+	.trim();
+
+const parts = [`# ${title}`];
+if (description) parts.push(`> ${description}`);
+parts.push(`Source: ${url}`, '---', cleanBody);
+const markdown = parts.join('\n\n');
+---
+
+<button
+	class="copy-llm"
+	type="button"
+	data-markdown={markdown}
+	aria-label="Copy this post as Markdown for an LLM"
+>
+	<svg
+		class="copy-llm__icon copy-llm__icon--copy"
+		width="14"
+		height="14"
+		viewBox="0 0 24 24"
+		fill="none"
+		stroke="currentColor"
+		stroke-width="2"
+		stroke-linecap="round"
+		stroke-linejoin="round"
+		aria-hidden="true"
+	>
+		<rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+		<path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+	</svg>
+	<svg
+		class="copy-llm__icon copy-llm__icon--done"
+		width="14"
+		height="14"
+		viewBox="0 0 24 24"
+		fill="none"
+		stroke="currentColor"
+		stroke-width="2.5"
+		stroke-linecap="round"
+		stroke-linejoin="round"
+		aria-hidden="true"
+	>
+		<polyline points="20 6 9 17 4 12"></polyline>
+	</svg>
+	<span class="copy-llm__label">Copy for LLM</span>
+</button>
+
+<script>
+	document.querySelectorAll<HTMLButtonElement>('.copy-llm').forEach((btn) => {
+		const label = btn.querySelector('.copy-llm__label');
+		const original = label?.textContent ?? 'Copy for LLM';
+		let timer: ReturnType<typeof setTimeout> | undefined;
+
+		btn.addEventListener('click', async () => {
+			const text = btn.dataset.markdown ?? '';
+			try {
+				await navigator.clipboard.writeText(text);
+			} catch {
+				// Fallback for older/insecure contexts without the async clipboard API.
+				const ta = document.createElement('textarea');
+				ta.value = text;
+				ta.style.position = 'fixed';
+				ta.style.opacity = '0';
+				document.body.appendChild(ta);
+				ta.select();
+				document.execCommand('copy');
+				ta.remove();
+			}
+
+			btn.classList.add('is-copied');
+			if (label) label.textContent = 'Copied';
+			clearTimeout(timer);
+			timer = setTimeout(() => {
+				btn.classList.remove('is-copied');
+				if (label) label.textContent = original;
+			}, 2000);
+		});
+	});
+</script>
+
+<style>
+	.copy-llm {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.45em;
+		padding: 0.3em 0.75em;
+		border: 1px solid rgb(var(--border));
+		border-radius: 999px;
+		background: rgb(var(--surface));
+		color: rgb(var(--gray-dark));
+		font-family: inherit;
+		font-size: 0.8rem;
+		font-weight: 600;
+		line-height: 1;
+		letter-spacing: 0.01em;
+		cursor: pointer;
+		transition:
+			color 0.15s ease,
+			border-color 0.15s ease,
+			background 0.15s ease;
+	}
+
+	.copy-llm:hover,
+	.copy-llm:focus-visible {
+		color: var(--accent-dark);
+		border-color: rgba(var(--accent-rgb), 0.5);
+		background: rgba(var(--accent-rgb), 0.08);
+		outline: none;
+	}
+
+	.copy-llm__icon {
+		flex: none;
+	}
+
+	/* Toggle copy <-> check icon on the copied state. */
+	.copy-llm__icon--done {
+		display: none;
+	}
+	.copy-llm.is-copied {
+		color: var(--accent-dark);
+		border-color: rgba(var(--accent-rgb), 0.5);
+		background: rgba(var(--accent-rgb), 0.12);
+	}
+	.copy-llm.is-copied .copy-llm__icon--copy {
+		display: none;
+	}
+	.copy-llm.is-copied .copy-llm__icon--done {
+		display: inline;
+	}
+</style>
