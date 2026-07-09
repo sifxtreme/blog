@@ -36,7 +36,9 @@ There's no "keep forever" toggle, and the minimum is 1 (setting it to 0 just err
 
 ## Why not just store it
 
-Because text is cheap. A year of transcripts is a rounding error on any modern disk. What they hold, a record of every problem I've worked through, is worth far more than the few megabytes it costs to keep them. That trade isn't close.
+Because text is cheap, and I can measure it. Right now I have about 900 sessions sitting in `~/.claude/projects/`, and all of them together come to under a gigabyte. Count every subagent transcript those sessions spawned and it's roughly 5,000 files, about 1.5 GB. My disk is a terabyte. What they hold, a record of every problem I've worked through, is worth far more than that. The trade isn't close.
+
+Here's the part that made the point for me. The oldest session still on my machine is from late April, about ten weeks back. Everything before that is already gone, swept by the old limit before I thought to change it. The numbers don't just say storage is cheap. They show me exactly what the default was quietly deleting.
 
 The reverse knob exists too. If you WANT the history gone, `CLAUDE_CODE_SKIP_PROMPT_HISTORY` turns transcript writes off entirely. I want the opposite. I want more of it, kept longer, sitting in files I control.
 
