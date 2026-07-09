@@ -1,0 +1,43 @@
+---
+title: 'Text is cheap, so keep your Claude sessions'
+description: 'Claude Code deletes your session transcripts after 30 days by default. That breaks files are king, so I changed one setting and now they stick around for a year.'
+pubDate: '2026-07-09'
+tags: ['claude', 'files-are-king']
+aiUsage: 'assisted'
+---
+
+A couple of months ago I went looking for the session where I'd solved a specific problem. I knew I'd worked it out with Claude Code. I just needed to find HOW I did it.
+
+It was gone.
+
+Claude Code keeps your session transcripts on your computer, but only for 30 days by default. Anything older gets swept away the next time it starts up. The session I wanted had aged out and taken the answer with it.
+
+## This breaks files are king
+
+Files are king. I keep almost everything as plain files on my machine: notes, runbooks, code, half-finished ideas. The reason is simple. A file is something I can search, grep, diff, and still open in five years. It doesn't live behind someone else's product decision.
+
+My Claude sessions are files too. They sit in `~/.claude/projects/` as plain JSONL, one JSON object per line. Every problem I've reasoned through with Claude is in there: the dead ends, the fix that finally worked, the exact command that did it. That's a searchable record of how I actually solve things.
+
+And by default, the machine was throwing it out after a month.
+
+## The one setting
+
+There is a single setting for this. It's called `cleanupPeriodDays` and it lives in `~/.claude/settings.json`.
+
+```json title="~/.claude/settings.json"
+{
+  "cleanupPeriodDays": 365
+}
+```
+
+The default is 30. When I first hit this I bumped it to 90. Today I'm taking it to 365.
+
+There's no "keep forever" toggle, and the minimum is 1 (setting it to 0 just errors out). So a year is my pragmatic version of forever. When these age out next year, I'll bump it again.
+
+## Why not just store it
+
+Because text is cheap. A year of transcripts is a rounding error on any modern disk. What they hold, a record of every problem I've worked through, is worth far more than the few megabytes it costs to keep them. That trade isn't close.
+
+The reverse knob exists too. If you WANT the history gone, `CLAUDE_CODE_SKIP_PROMPT_HISTORY` turns transcript writes off entirely. I want the opposite. I want more of it, kept longer, sitting in files I control.
+
+The full setting reference is [in the docs](https://code.claude.com/docs/en/settings).
