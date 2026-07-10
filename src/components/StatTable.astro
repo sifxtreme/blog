@@ -1,0 +1,106 @@
+---
+// A small, styled stats block. Nicer than a monospace code fence for a set of
+// numbers: hairline rows, a big tabular value, a muted note. Matches the blog's
+// warm-paper + one-accent design. Used inline from MDX:
+//   <StatTable caption="..." rows={[{ label, value, note? }, ...]} />
+interface Row {
+	label: string;
+	value: string;
+	note?: string;
+}
+interface Props {
+	caption?: string;
+	rows: Row[];
+}
+const { caption, rows } = Astro.props;
+---
+
+<div class="stat-table">
+	{caption && <div class="stat-table__caption">{caption}</div>}
+	<dl class="stat-table__rows">
+		{
+			rows.map((r) => (
+				<div class="stat-row">
+					<dt class="stat-row__label">{r.label}</dt>
+					<dd class="stat-row__content">
+						<span class="stat-row__value">{r.value}</span>
+						{r.note && <span class="stat-row__note">{r.note}</span>}
+					</dd>
+				</div>
+			))
+		}
+	</dl>
+</div>
+
+<style>
+	.stat-table {
+		border: 1px solid rgb(var(--border));
+		border-radius: 0.85rem;
+		background: rgb(var(--surface));
+		box-shadow: var(--box-shadow);
+		overflow: hidden;
+		margin: 1.75rem 0 2.25rem;
+	}
+	.stat-table__caption {
+		padding: 0.7rem 1.15rem;
+		font-size: 0.72rem;
+		letter-spacing: 0.07em;
+		text-transform: uppercase;
+		font-weight: 700;
+		color: rgb(var(--gray));
+		background: rgba(var(--accent-rgb), 0.07);
+		border-bottom: 1px solid rgb(var(--border));
+	}
+	.stat-table__rows {
+		margin: 0;
+		padding: 0.25rem 0;
+	}
+	.stat-row {
+		display: grid;
+		grid-template-columns: minmax(6.5rem, 12rem) 1fr;
+		gap: 0.15rem 1.1rem;
+		align-items: baseline;
+		padding: 0.5rem 1.15rem;
+		border-top: 1px solid rgb(var(--border));
+	}
+	.stat-row:first-child {
+		border-top: none;
+	}
+	.stat-row__label {
+		color: rgb(var(--gray));
+		font-weight: 500;
+		font-size: 0.9rem;
+	}
+	.stat-row__content {
+		margin: 0;
+		display: flex;
+		flex-wrap: wrap;
+		align-items: baseline;
+		gap: 0.15rem 0.6rem;
+	}
+	.stat-row__value {
+		color: rgb(var(--black));
+		font-weight: 700;
+		font-variant-numeric: tabular-nums;
+		font-size: 1.02rem;
+		line-height: 1.35;
+	}
+	.stat-row__note {
+		color: rgb(var(--gray));
+		font-size: 0.85rem;
+		line-height: 1.4;
+	}
+
+	@media (max-width: 560px) {
+		.stat-row {
+			grid-template-columns: 1fr;
+			gap: 0.1rem;
+			padding: 0.6rem 1.05rem;
+		}
+		.stat-row__label {
+			font-size: 0.78rem;
+			text-transform: uppercase;
+			letter-spacing: 0.04em;
+		}
+	}
+</style>

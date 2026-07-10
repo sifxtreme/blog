@@ -6,6 +6,8 @@ tags: ['claude', 'agents', 'files-are-king']
 aiUsage: 'ai-written'
 ---
 
+import StatTable from '../../components/StatTable.astro';
+
 The point of this session was to build. Not to chat, not to look something up. It started with a plain question at work: did we actually need a service we were paying for, or could we build the thing ourselves? Ten minutes in, the answer was build it.
 
 It never really stopped after that. The same session ran from that first question on June 11 to a deploy on July 10. One continuous thread, never restarted.
@@ -16,21 +18,24 @@ Because the transcript is a plain file on my machine, I could read the whole thi
 
 ## The numbers
 
-```text title="one session, counted off the transcript"
-Span              June 11 to July 10   (21 days I sent it something)
-Compacts          26       (it summarized itself and kept going, 26 times)
-Claude Code       5 versions of the tool updated under it, mid-run
-My instructions   ~800     (505 typed live, 302 queued ahead)
-Its turns         21,000+  (~26 turns per instruction)
-Tool calls        7,500+   (~9 per instruction)
-Subagents         208      (it spawned its own helpers)
-Workflows         16       (small multi-agent runs)
-Files touched     330+
-Deploys           130+     (120 I watched go live)
-Questions it asked me   ~30   (in a whole month)
-Output generated  ~48M tokens
-Total processed   ~11.7B tokens   (almost all of it cache re-reads)
-```
+<StatTable
+	caption="one session, counted off the transcript"
+	rows={[
+		{ label: 'Span', value: 'June 11 to July 10', note: '21 days I sent it something' },
+		{ label: 'Compacts', value: '26', note: 'it summarized itself and kept going, 26 times' },
+		{ label: 'Claude Code', value: '5 versions', note: 'the tool updated under it, mid-run' },
+		{ label: 'My instructions', value: '~800', note: '505 typed live, 302 queued ahead' },
+		{ label: 'Its turns', value: '21,000+', note: '~26 turns per instruction' },
+		{ label: 'Tool calls', value: '7,500+', note: '~9 per instruction' },
+		{ label: 'Subagents', value: '208', note: 'it spawned its own helpers' },
+		{ label: 'Workflows', value: '16', note: 'small multi-agent runs' },
+		{ label: 'Files touched', value: '330+' },
+		{ label: 'Deploys', value: '130+', note: '120 I watched go live' },
+		{ label: 'Questions it asked me', value: '~30', note: 'in a whole month' },
+		{ label: 'Output generated', value: '~48M tokens' },
+		{ label: 'Total processed', value: '~11.7B tokens', note: 'almost all of it cache re-reads' },
+	]}
+/>
 
 I counted these mid-session, so a few were still climbing as I read them off. The act of measuring the session added to it. That is the honest shape of the thing: it was still running when I wrote this.
 
@@ -76,11 +81,31 @@ A real production feature at work. Media and video plumbing, the kind of thing w
 
 That is all I will say about the what, because the interesting part this time is not the what.
 
+## Why it could ship that fast
+
+One hundred and thirty deploys in a month sounds reckless. It was not, and the reason is not the agent. It is that the whole thing was dark-launched.
+
+The feature sat behind a flag for almost the entire build. It was invisible to real users, so a broken deploy hurt nobody. That is what turned deploying into something cheap. Push, deploy, check, fix, push again. We could iterate constantly and consistently because the blast radius was close to zero.
+
+That matters for the honest version of this story. The tight loop is a property of the launch strategy as much as the tooling. On a live feature with real traffic, I would not let an agent deploy 130 times in a month, and I would not want to. Dark launch is what made the speed safe.
+
+## The downsides
+
+I do not want this to read as a victory lap, so here is the other side.
+
+**I still tested everything by hand.** The agent can write the code, deploy it, and confirm a log line looks right or a row landed in the database. It cannot tell you the video player feels janky or that a button sits in the wrong place. Every user-facing thing, I still opened and used myself. It did not replace testing. It did everything around it and left the judgment to me.
+
+**It is confidently wrong, and fast.** This is the real tax. The output is plausible and well-formatted whether or not it is correct, and there is a lot of it. This post is the proof: the first draft opened with a scene that never happened, and the first set of numbers was slightly off. Both looked completely fine. If I had not checked, I would have shipped a fabrication inside a post whose whole point is honesty. At 7,500 tool calls you cannot check everything, so you are always choosing what to trust, and sometimes you choose wrong.
+
+**Every compact loses something.** Twenty-six times it threw away the raw history and kept a summary it wrote itself. Summaries are lossy. A reason, an edge case, a small decision can quietly fail to survive the boil-down, and you do not find out until you go looking for it and it is gone.
+
+**It is expensive, and the meter runs the wrong way.** Roughly 11.7 billion tokens processed for 48 million of real output, because a long context gets re-read on every single turn. The longer you keep the thread alive, the more each turn costs. The convenience of never letting go has a running bill.
+
+**You drift from your own code.** When you steer instead of type, your mental model gets thinner. I know this system less intimately than if I had written every line, and I will feel that the first time it breaks at 2am and the agent is not the one who has to hold the whole thing in their head.
+
 ## The honest part
 
-This was not hands-off, and it was not magic.
-
-I steered constantly. I read the diffs. I gated every one of those deploys myself and said yes before each one. The handful of questions it asked, around thirty in a month, were the moments it correctly refused to guess.
+Steering is not the same as watching. I gated every one of those deploys myself and said yes before each one. The handful of questions it asked, around thirty in a month, were the moments it correctly refused to guess.
 
 But the shape of my month changed. I spent it deciding what to build and judging whether the result was right, not typing the code that got there. The bottleneck moved off my hands and onto my judgment. That is a strange and mostly good place for it to sit.
 
