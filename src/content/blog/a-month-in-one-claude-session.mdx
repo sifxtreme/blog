@@ -37,7 +37,7 @@ Because the transcript is a plain file on my machine, I could read the whole thi
 	]}
 />
 
-I counted these mid-session, so a few were still climbing as I read them off. The act of measuring the session added to it. That is the honest shape of the thing: it was still running when I wrote this.
+I counted these mid-session, so a few were still climbing as I read them off. The act of measuring the session added to it. It was still running when I wrote this.
 
 ## What "26 compacts" means
 
@@ -45,7 +45,7 @@ A model has a fixed context window. Fill it up and something has to give. Claude
 
 This session did that 26 times. Twenty-six times it hit the ceiling, wrote itself a handoff, and continued without me starting over. It rode through five versions of Claude Code as the tool updated under it. The thread never broke.
 
-That is the part that still feels new to me. I have had long chats before. I have never had one collaborator carry a single build across 26 memory wipes and a month of calendar time, from the first question to the last deploy.
+That part still feels new. I have had long chats before. I had never had one carry a single build across 26 memory wipes and a month of calendar time.
 
 ## The steering ratio
 
@@ -53,7 +53,7 @@ The number I keep coming back to is this: about 800 instructions from me turned 
 
 Roughly 26 of its turns for every one of mine. About 9 tool calls per thing I said. And in a full month it stopped to ask me a real decision only about 30 times.
 
-More than a third of my instructions I did not even type live. I queued them, firing the next one while it was still working on the last, because I had stopped waiting. That is the tell. When you queue work ahead of an agent, you have quietly decided you trust it to keep moving.
+More than a third of my instructions I did not even type live. I queued them, firing the next one while it was still working on the last, because I had stopped waiting. When you queue work ahead of an agent, you have quietly decided to trust it.
 
 ## How it actually held up for a month
 
@@ -61,7 +61,7 @@ The trick is not a bigger brain. It is delegation.
 
 The main thread did not read every log file and every database row itself. It spawned 208 subagents to do that. A subagent goes off, reads the CloudWatch logs or queries the database, and comes back with a short summary. The detail dies with the subagent. Only the conclusion comes home.
 
-That is what keeps a month-long session alive. The main context stays about steering. The grunt work gets farmed out and boiled down. Sixteen times it went further and ran small multi-agent workflows, several helpers at once, then merged what they found.
+That is what keeps a month-long session alive. The main context stays about steering while the detail work happens elsewhere and comes back small. Sixteen times it went further and ran small multi-agent workflows, several helpers at once, then merged what they found.
 
 So the session did not grow heavier as it went. It stayed a thin thread of decisions, sitting on top of a lot of disposable work.
 
@@ -71,9 +71,9 @@ Mostly not at my desk.
 
 The session was bridged to the Claude app the whole time, so I drove a lot of it from my phone, usually by talking. I would say what I wanted, it would go do it, and I would check back later.
 
-I wanted to tell you exactly what fraction came from the phone versus the keyboard, and here the transcript is honest about its limits: every prompt is logged as coming through the CLI, because the app relays into the session running on my computer. So I cannot split it cleanly per message. What I can see is that the app stayed connected across thousands of sync events, and the actual work ran about 71% on my laptop, with the rest reaching onto an always-on box for the heavier local compute and out to cloud services for deploys and logs.
+I wanted to tell you exactly what fraction came from the phone versus the keyboard, but the transcript cannot say. Every prompt is logged as coming through the CLI, because the app relays into the session running on my computer. What I can see is that the app stayed connected the whole month. The rest I know because I lived it: a lot of this was thumbed in one-handed.
 
-The shape of it: the work ran on my computer, and I steered it from my pocket.
+So the work ran on my computer, and I steered it from my pocket.
 
 ## When it happened
 
@@ -87,7 +87,7 @@ The agent does not keep hours. It was as ready at 6am or on a Sunday as it was a
 
 ## What it was for
 
-A real production feature at work. Media and video plumbing, the kind of thing with a backfill, an ongoing pipeline, and a deploy at the end. Not a toy. It shipped.
+A real production feature at work. Media and video plumbing, the kind of thing with a backfill, an ongoing pipeline, and a deploy at the end. It shipped.
 
 That is all I will say about the what, because the interesting part this time is not the what.
 
@@ -95,15 +95,13 @@ That is all I will say about the what, because the interesting part this time is
 
 One hundred and thirty deploys in a month sounds reckless. It was not, and the reason is not the agent. It is that the whole thing was dark-launched.
 
-The feature sat behind a flag for almost the entire build. It was invisible to real users, so a broken deploy hurt nobody. That is what turned deploying into something cheap. Push, deploy, check, fix, push again. We could iterate constantly and consistently because the blast radius was close to zero.
+The feature sat behind a flag for almost the entire build. It was invisible to real users, so a broken deploy hurt no one but me. That is what turned deploying into something cheap. Push, deploy, check, fix, push again. We could iterate constantly and consistently because the blast radius was close to zero.
 
-Dark launch was one safety net. The other was a test harness that grew as the feature did. Standing up real end-to-end tests against production is the kind of work that never gets prioritized, and it turned out to be exactly the kind of work the agent was glad to do. So the tests came almost as a side effect, and the safe-to-deploy envelope kept widening as we went. A month-long build behind a flag is a rare and good excuse to finally build the harness you always meant to.
+Dark launch was one safety net. The other was a test harness that grew as the feature did. Standing up real end-to-end tests, the kind that drive the deployed app the way a user would instead of a local mock, is the kind of work that never gets prioritized, and it turned out to be exactly the kind of work the agent was glad to do. So the tests came almost as a side effect, and the safe-to-deploy envelope kept widening as we went. A month-long build behind a flag is a rare and good excuse to finally build the harness you always meant to.
 
-That matters for the honest version of this story. The tight loop is a property of the launch strategy as much as the tooling. On a live feature with real traffic, I would not let an agent deploy 130 times in a month, and I would not want to. Dark launch and a growing test harness are what made the speed safe.
+That is the caveat worth keeping. The tight loop is a property of the launch strategy as much as the tooling. On a live feature with real traffic, I would not let an agent deploy 130 times in a month, and I would not want to. Dark launch and a growing test harness are what made the speed safe.
 
 ## The downsides
-
-I do not want this to read as a victory lap, so here is the other side.
 
 **It cannot tell you whether it feels right.** The agent writes the code, deploys it, checks a log line, checks a row in the database, and it writes and runs end-to-end tests, which it did plenty of. What it cannot judge is whether the video player feels janky or a button sits in the wrong place. So the mechanical checking increasingly moved into a test harness we built alongside the feature, and my part narrowed to taste. I did not hand-test everything. But the last mile, whether the thing was actually good, stayed human.
 
@@ -111,7 +109,7 @@ I do not want this to read as a victory lap, so here is the other side.
 
 **Every compact loses something.** Twenty-six times it threw away the raw history and kept a summary it wrote itself. Summaries are lossy. A reason, an edge case, a small decision can quietly fail to survive the boil-down, and you do not find out until you go looking for it and it is gone.
 
-**It is expensive, and the meter runs the wrong way.** Roughly 11.7 billion tokens processed for 48 million of real output, because a long context gets re-read on every single turn. The longer you keep the thread alive, the more each turn costs. The convenience of never letting go has a running bill.
+**It is expensive, and the meter runs the wrong way.** Roughly 11.7 billion tokens processed for 48 million the model actually generated, because a long context gets re-read on every single turn. The longer you keep the thread alive, the more each turn costs. The convenience of never letting go has a running bill.
 
 **You drift from your own code.** When you steer instead of type, your mental model gets thinner. I know this system less intimately than if I had written every line, and I will feel that the first time it breaks at 2am and the agent is not the one who has to hold the whole thing in their head.
 
