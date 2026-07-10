@@ -1,16 +1,18 @@
 ---
 title: 'A month inside one Claude session'
-description: 'I looked back at a Claude Code session and found it had been running for a month. One session, 26 compacts, ~800 instructions from me. Here is what steering an agent that never resets actually looks like.'
+description: 'One build session at work ran for a month without restarting. 26 compacts, ~800 instructions, ~11.7B tokens. What it looks like to steer an agent that never resets.'
 pubDate: '2026-07-09'
 tags: ['claude', 'agents', 'files-are-king']
 aiUsage: 'ai-written'
 ---
 
-I went to look something up in a Claude Code session and realized the session had been open for a month.
+The point of this session was to build. Not to chat, not to look something up. It started with a plain question at work: did we actually need a service we were paying for, or could we build the thing ourselves? Ten minutes in, the answer was build it.
 
-Not a month of separate chats. One session. Never restarted. The same continuous thread, from an idea on June 11 to a deploy on July 10.
+It never really stopped after that. The same session ran from that first question on June 11 to a deploy on July 10. One continuous thread, never restarted.
 
-Because the transcript is a plain file on my machine, I could just read it back and count. Here is what a month in one session looks like.
+I did not set out to keep a session open for a month. I just never hit a point where starting over made sense. The work kept handing off from one piece to the next. A build-vs-buy call, then a working replacement, then weeks of extending it: the pipeline, the search, the tests, the polish. Then a migration. Then the hardening at the end. One thread carried all of it.
+
+Because the transcript is a plain file on my machine, I could read the whole thing back and count. Here is what a month in one build session looks like.
 
 ## The numbers
 
@@ -38,7 +40,7 @@ A model has a fixed context window. Fill it up and something has to give. Claude
 
 This session did that 26 times. Twenty-six times it hit the ceiling, wrote itself a handoff, and continued without me starting over. It rode through five versions of Claude Code as the tool updated under it. The thread never broke.
 
-That is the part that still feels new to me. I have had long chats before. I have never had one collaborator hold a single problem across 26 memory wipes and a month of calendar time.
+That is the part that still feels new to me. I have had long chats before. I have never had one collaborator carry a single build across 26 memory wipes and a month of calendar time, from the first question to the last deploy.
 
 ## The steering ratio
 
