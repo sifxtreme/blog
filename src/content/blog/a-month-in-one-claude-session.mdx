@@ -75,6 +75,16 @@ I wanted to tell you exactly what fraction came from the phone versus the keyboa
 
 The shape of it: the work ran on my computer, and I steered it from my pocket.
 
+## When it happened
+
+Steering from my pocket had a second effect. The work stopped respecting work hours.
+
+I lined every instruction up against a normal week in Pacific time: weekdays, eight to five, minus weekends, minus the last week of June when the whole firm was closed for the holiday. About 70% of what I sent landed outside that window.
+
+A little over a quarter came on weekends. Almost another quarter came during the week the office was shut. The rest were weekday nights and early mornings, with a real burst at six and seven in the morning before the day started, and a second one in the evening between six and eight.
+
+The agent does not keep hours. It was as ready at 6am or on a Sunday as it was at 2pm on a Tuesday, so the work stopped being a thing I sat down to do and became a thing I did in the gaps, whenever I had a minute and a thought. That is either the best part or the worst part, depending on the day.
+
 ## What it was for
 
 A real production feature at work. Media and video plumbing, the kind of thing with a backfill, an ongoing pipeline, and a deploy at the end. Not a toy. It shipped.
@@ -87,13 +97,15 @@ One hundred and thirty deploys in a month sounds reckless. It was not, and the r
 
 The feature sat behind a flag for almost the entire build. It was invisible to real users, so a broken deploy hurt nobody. That is what turned deploying into something cheap. Push, deploy, check, fix, push again. We could iterate constantly and consistently because the blast radius was close to zero.
 
-That matters for the honest version of this story. The tight loop is a property of the launch strategy as much as the tooling. On a live feature with real traffic, I would not let an agent deploy 130 times in a month, and I would not want to. Dark launch is what made the speed safe.
+Dark launch was one safety net. The other was a test harness that grew as the feature did. Standing up real end-to-end tests against production is the kind of work that never gets prioritized, and it turned out to be exactly the kind of work the agent was glad to do. So the tests came almost as a side effect, and the safe-to-deploy envelope kept widening as we went. A month-long build behind a flag is a rare and good excuse to finally build the harness you always meant to.
+
+That matters for the honest version of this story. The tight loop is a property of the launch strategy as much as the tooling. On a live feature with real traffic, I would not let an agent deploy 130 times in a month, and I would not want to. Dark launch and a growing test harness are what made the speed safe.
 
 ## The downsides
 
 I do not want this to read as a victory lap, so here is the other side.
 
-**I still tested everything by hand.** The agent can write the code, deploy it, and confirm a log line looks right or a row landed in the database. It cannot tell you the video player feels janky or that a button sits in the wrong place. Every user-facing thing, I still opened and used myself. It did not replace testing. It did everything around it and left the judgment to me.
+**It cannot tell you whether it feels right.** The agent writes the code, deploys it, checks a log line, checks a row in the database, and it writes and runs end-to-end tests, which it did plenty of. What it cannot judge is whether the video player feels janky or a button sits in the wrong place. So the mechanical checking increasingly moved into a test harness we built alongside the feature, and my part narrowed to taste. I did not hand-test everything. But the last mile, whether the thing was actually good, stayed human.
 
 **It is confidently wrong, and fast.** This is the real tax. The output is plausible and well-formatted whether or not it is correct, and there is a lot of it. This post is the proof: the first draft opened with a scene that never happened, and the first set of numbers was slightly off. Both looked completely fine. If I had not checked, I would have shipped a fabrication inside a post whose whole point is honesty. At 7,500 tool calls you cannot check everything, so you are always choosing what to trust, and sometimes you choose wrong.
 
