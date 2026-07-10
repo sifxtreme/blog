@@ -3,7 +3,7 @@
 // saying how (or whether) AI was involved. Driven by the post's `aiUsage`
 // frontmatter. This is the thing that makes the blog different — radical
 // transparency about AI use.
-type AIUsage = 'handwritten' | 'dictated' | 'assisted';
+type AIUsage = 'handwritten' | 'dictated' | 'assisted' | 'ai-written';
 
 interface Props {
 	usage?: AIUsage;
@@ -27,6 +27,12 @@ const MAP: Record<AIUsage, { icon: string; label: string; detail: string }> = {
 		icon: '🤖',
 		label: 'AI-assisted',
 		detail: 'I directed the piece and edited every line; AI helped draft it.',
+	},
+	'ai-written': {
+		icon: '🦾',
+		label: 'Written by AI',
+		detail:
+			'AI wrote this one end to end. I gave it the goal and the numbers, reviewed it, and hit publish. The words are the model\'s, not mine.',
 	},
 };
 
@@ -84,6 +90,11 @@ const info = usage ? MAP[usage] : undefined;
 		--badge-bg: rgba(217, 119, 6, 0.12);
 		--badge-fg: rgb(170, 92, 4);
 	}
+	.ai-badge[data-usage='ai-written'] {
+		--badge-ring: rgba(124, 58, 237, 0.45);
+		--badge-bg: rgba(124, 58, 237, 0.12);
+		--badge-fg: rgb(109, 40, 217);
+	}
 
 	.ai-badge__icon {
 		font-size: 0.95em;
@@ -128,6 +139,9 @@ const info = usage ? MAP[usage] : undefined;
 		}
 		.ai-badge[data-usage='assisted'] {
 			--badge-fg: rgb(240, 180, 90);
+		}
+		.ai-badge[data-usage='ai-written'] {
+			--badge-fg: rgb(196, 160, 255);
 		}
 		.ai-badge__detail {
 			background: rgb(230, 230, 235);

@@ -1,0 +1,85 @@
+---
+title: 'A month inside one Claude session'
+description: 'I looked back at a Claude Code session and found it had been running for a month. One session, 26 compacts, ~800 instructions from me. Here is what steering an agent that never resets actually looks like.'
+pubDate: '2026-07-09'
+tags: ['claude', 'agents', 'files-are-king']
+aiUsage: 'ai-written'
+---
+
+I went to look something up in a Claude Code session and realized the session had been open for a month.
+
+Not a month of separate chats. One session. Never restarted. The same continuous thread, from an idea on June 11 to a deploy on July 10.
+
+Because the transcript is a plain file on my machine, I could just read it back and count. Here is what a month in one session looks like.
+
+## The numbers
+
+```text title="one session, counted off the transcript"
+Span              June 11 to July 10   (21 days I sent it something)
+Compacts          26       (it summarized itself and kept going, 26 times)
+Claude Code       5 versions of the tool updated under it, mid-run
+My instructions   ~800     (505 typed live, 302 queued ahead)
+Its turns         21,000+  (~26 turns per instruction)
+Tool calls        7,500+   (~9 per instruction)
+Subagents         208      (it spawned its own helpers)
+Workflows         16       (small multi-agent runs)
+Files touched     330+
+Deploys           130+     (120 I watched go live)
+Questions it asked me   ~30   (in a whole month)
+Output generated  ~48M tokens
+Total processed   ~11.7B tokens   (almost all of it cache re-reads)
+```
+
+I counted these mid-session, so a few were still climbing as I read them off. The act of measuring the session added to it. That is the honest shape of the thing: it was still running when I wrote this.
+
+## What "26 compacts" means
+
+A model has a fixed context window. Fill it up and something has to give. Claude Code's answer is to compact: it writes itself a summary of everything so far, drops the raw history, and keeps going from the summary.
+
+This session did that 26 times. Twenty-six times it hit the ceiling, wrote itself a handoff, and continued without me starting over. It rode through five versions of Claude Code as the tool updated under it. The thread never broke.
+
+That is the part that still feels new to me. I have had long chats before. I have never had one collaborator hold a single problem across 26 memory wipes and a month of calendar time.
+
+## The steering ratio
+
+The number I keep coming back to is this: about 800 instructions from me turned into more than 21,000 turns from it.
+
+Roughly 26 of its turns for every one of mine. About 9 tool calls per thing I said. And in a full month it stopped to ask me a real decision only about 30 times.
+
+More than a third of my instructions I did not even type live. I queued them, firing the next one while it was still working on the last, because I had stopped waiting. That is the tell. When you queue work ahead of an agent, you have quietly decided you trust it to keep moving.
+
+## How it actually held up for a month
+
+The trick is not a bigger brain. It is delegation.
+
+The main thread did not read every log file and every database row itself. It spawned 208 subagents to do that. A subagent goes off, reads the CloudWatch logs or queries the database, and comes back with a short summary. The detail dies with the subagent. Only the conclusion comes home.
+
+That is what keeps a month-long session alive. The main context stays about steering. The grunt work gets farmed out and boiled down. Sixteen times it went further and ran small multi-agent workflows, several helpers at once, then merged what they found.
+
+So the session did not grow heavier as it went. It stayed a thin thread of decisions, sitting on top of a lot of disposable work.
+
+## Where I actually was
+
+Mostly not at my desk.
+
+The session was bridged to the Claude app the whole time, so I drove a lot of it from my phone, usually by talking. I would say what I wanted, it would go do it, and I would check back later.
+
+I wanted to tell you exactly what fraction came from the phone versus the keyboard, and here the transcript is honest about its limits: every prompt is logged as coming through the CLI, because the app relays into the session running on my computer. So I cannot split it cleanly per message. What I can see is that the app stayed connected across thousands of sync events, and the actual work ran about 71% on my laptop, with the rest reaching onto an always-on box for the heavier local compute and out to cloud services for deploys and logs.
+
+The shape of it: the work ran on my computer, and I steered it from my pocket.
+
+## What it was for
+
+A real production feature at work. Media and video plumbing, the kind of thing with a backfill, an ongoing pipeline, and a deploy at the end. Not a toy. It shipped.
+
+That is all I will say about the what, because the interesting part this time is not the what.
+
+## The honest part
+
+This was not hands-off, and it was not magic.
+
+I steered constantly. I read the diffs. I gated every one of those deploys myself and said yes before each one. The handful of questions it asked, around thirty in a month, were the moments it correctly refused to guess.
+
+But the shape of my month changed. I spent it deciding what to build and judging whether the result was right, not typing the code that got there. The bottleneck moved off my hands and onto my judgment. That is a strange and mostly good place for it to sit.
+
+And to be straight with you: I did not write this post either. I gave the agent the goal and the numbers off the transcript, and it wrote this. That is the badge at the top. When a machine writes the thing, the badge says so.

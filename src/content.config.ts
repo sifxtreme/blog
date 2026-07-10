@@ -19,7 +19,7 @@ const blog = defineCollection({
 			// top of every post. Defaults to fully hand-written so nothing is ever
 			// silently mislabeled.
 			aiUsage: z
-				.enum(['handwritten', 'dictated', 'assisted'])
+				.enum(['handwritten', 'dictated', 'assisted', 'ai-written'])
 				.default('handwritten'),
 			// Optional: makes this a "link post" (linkblog style). When set, the
 			// title links out to this URL and the post still gets its own permalink.
