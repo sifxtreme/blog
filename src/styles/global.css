@@ -23,8 +23,10 @@
 	--box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 6px 20px rgba(0, 0, 0, 0.06);
 }
 
+/* System preference applies only until the reader picks a theme (see the
+   toggle in the header). Once chosen, [data-theme] wins. */
 @media (prefers-color-scheme: dark) {
-	:root {
+	:root:not([data-theme]) {
 		--accent: #fb923c;
 		--accent-dark: #fdba74;
 		--accent-rgb: 251, 146, 60;
@@ -40,6 +42,23 @@
 
 		--box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 6px 20px rgba(0, 0, 0, 0.45);
 	}
+}
+
+:root[data-theme='dark'] {
+	--accent: #fb923c;
+	--accent-dark: #fdba74;
+	--accent-rgb: 251, 146, 60;
+
+	--black: 240, 240, 245;
+	--gray: 148, 148, 160;
+	--gray-light: 36, 36, 43;
+	--gray-dark: 214, 214, 224;
+
+	--bg: 15, 15, 18;
+	--surface: 23, 23, 28;
+	--border: 44, 44, 53;
+
+	--box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 6px 20px rgba(0, 0, 0, 0.45);
 }
 
 html {

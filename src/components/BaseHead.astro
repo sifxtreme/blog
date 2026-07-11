@@ -27,6 +27,21 @@ const ogImage = ogImagePath
 <!-- Global Metadata -->
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
+
+<!-- Resolve the reader's theme before first paint (no flash). -->
+<script is:inline>
+	(function () {
+		try {
+			var stored = localStorage.getItem('theme');
+			var theme =
+				stored ||
+				(window.matchMedia('(prefers-color-scheme: dark)').matches
+					? 'dark'
+					: 'light');
+			document.documentElement.setAttribute('data-theme', theme);
+		} catch (e) {}
+	})();
+</script>
 <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 <link rel="icon" href="/favicon.ico" />
 <link rel="sitemap" href="/sitemap-index.xml" />
