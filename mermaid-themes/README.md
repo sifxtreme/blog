@@ -14,6 +14,14 @@ PNG export CLI.
 | `sci-fi-hud` | standout post | cyan on near-black, scanlines, glow |
 | `pop-art` | standout post | halftone yellow, comic-book primaries |
 | `bauhaus` | standout post | red / yellow / blue geometry, Helvetica |
+| `retro-forest` | signature / fun | 16-bit RPG: parchment boxes, forest ground, pixel font, orange accent (matches the avatar) |
+| `retro-chrono` | signature / fun | SNES JRPG blue command-window |
+| `retro-gameboy` | signature / fun | Game Boy 4-green monochrome |
+| `retro-dq` | signature / fun | Dragon Quest black window, white pixel border |
+
+The `retro-*` themes load a pixel font (Pixelify Sans) from Google Fonts via a
+theme `fontImport` field, so they need network at render time. The renderer
+waits for the font before drawing so labels measure correctly.
 
 `sifxtreme-light` / `sifxtreme-dark` are the default. Use one signature look
 everywhere so a diagram reads as mine at a glance. The four bold themes are for

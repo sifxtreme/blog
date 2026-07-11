@@ -40,12 +40,18 @@ const skinCss = THEME_KEYS
     `#p-${k} .stage{ background:${THEMES[k].bg}; }`)
   .join('\n');
 
+const fontLinks = [...new Set(THEME_KEYS.map((k) => THEMES[k].fontImport).filter(Boolean))]
+  .map((u) => `<link rel="stylesheet" href="${u}">`).join('\n');
+const fontProbeLoads = [...new Set(THEME_KEYS.map((k) => THEMES[k].fontProbe).filter(Boolean))]
+  .map((p) => `try{ await document.fonts.load('700 16px "${p}"'); }catch(e){}`).join(' ');
+
 const html = `<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Mermaid theme kit — reference</title>
+${fontLinks}
 <style>
   :root{ color-scheme:dark; } *{ box-sizing:border-box; }
   body{ margin:0; padding:32px 22px 70px; background:#101216; color:#e7e9ee; font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
@@ -99,6 +105,8 @@ for (const t of DATA) {
   fig.innerHTML = '<figcaption class="cap"><span class="name">' + t.label + '</span><span class="mode">' + t.mode + '</span></figcaption><div class="stage"></div>';
   grid.appendChild(fig);
 }
+${fontProbeLoads}
+try{ if (document.fonts && document.fonts.ready) await document.fonts.ready; }catch(e){}
 mermaid.initialize({ startOnLoad:false, securityLevel:'loose' });
 for (const t of DATA) {
   try {
