@@ -7,6 +7,8 @@ aiUsage: 'ai-written'
 ---
 
 import StatTable from '../../components/StatTable.astro';
+import compactsLight from '../../assets/compacts-light.png';
+import compactsDark from '../../assets/compacts-dark.png';
 
 It started as a build-or-buy question. We were paying for a service and I wanted to know if we could just build it ourselves instead. Ten minutes of digging and the answer was obvious. Build it.
 
@@ -42,6 +44,20 @@ I counted these mid-session, so a few were still climbing as I read them off. Th
 ## What "26 compacts" means
 
 A model has a fixed context window. Fill it up and something has to give. Claude Code's answer is to compact: it writes itself a summary of everything so far, drops the raw history, and keeps going from the summary.
+
+<figure style="margin:2rem 0;">
+	<picture>
+		<source srcset={compactsDark.src} media="(prefers-color-scheme: dark)" />
+		<img
+			src={compactsLight.src}
+			width={compactsLight.width}
+			height={compactsLight.height}
+			alt="A loop. Kicking off the session leads into build and steer. When the context fills, it compacts by summarizing itself, then resumes and returns to build and steer, twenty-six times. A phone nudges the work from outside working hours."
+			style="width:100%;height:auto;border:1px solid rgb(var(--border));border-radius:12px;"
+		/>
+	</picture>
+	<figcaption style="text-align:center;color:rgb(var(--gray));font-size:0.85em;margin-top:0.6rem;">Work until the context fills, compact into a self-summary, resume. Twenty-six times, and the thread never resets.</figcaption>
+</figure>
 
 This session did that 26 times. Twenty-six times it hit the ceiling, wrote itself a handoff, and continued without me starting over. It rode through five versions of Claude Code as the tool updated under it. The thread never broke.
 
