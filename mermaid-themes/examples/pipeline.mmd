@@ -1,0 +1,7 @@
+flowchart LR
+  A([Idea]):::start --> B{Review}:::decide
+  B -->|ship| C[Build]:::work
+  B -->|nope| A
+  C --> D[Deploy]:::work
+  D --> E((Live)):::done
+  linkStyle 4 stroke:ACCENT,stroke-width:2px;
