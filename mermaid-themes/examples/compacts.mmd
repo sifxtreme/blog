@@ -1,0 +1,7 @@
+flowchart LR
+  Start([Kick off the session]):::start --> Work[Build &amp; steer]:::work
+  Work -->|context fills| Compact[Compact ·<br/>it summarizes itself]:::hot
+  Compact -->|resume · ×26| Work
+  Phone([Phone, after hours]):::start -. nudge .-> Work
+  classDef hot fill:ACCENT,stroke:ACCENT,color:#ffffff;
+  linkStyle 2 stroke:ACCENT,stroke-width:2px;
