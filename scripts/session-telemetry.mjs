@@ -1,116 +1,166 @@
 #!/usr/bin/env node
 /*
-  Pull real telemetry for a blog post from the Claude Code session transcripts
-  that drafted it. "Telemetry over vibes" — every number here comes off the
-  actual JSONL, nothing is guessed.
+  Real telemetry for a blog post — scoped to the AUTHORING WINDOW, not the whole
+  session. A single Claude Code session does many things; what we want is "when
+  did we start authoring this post and when did it publish," so we bound every
+  count to the span between the first and last edit of that post's file, and take
+  the publish date from git. "Telemetry over vibes."
 
-  Usage:  node scripts/session-telemetry.mjs <slug>
-  Example: node scripts/session-telemetry.mjs a-month-in-one-claude-session
+  Usage:  node scripts/session-telemetry.mjs <slug> [--json]
 
-  Reads ~/.claude/projects/-Users-asifahmed-code/*.jsonl (local only; the
-  transcripts never leave the machine). Output is meant to be reviewed by hand,
-  then baked into a post's frontmatter — not trusted blindly.
+  Reads ~/.claude/projects/-Users-asifahmed-code/*.jsonl (local only; transcripts
+  never leave the machine). Review the numbers before putting them on the site.
 */
 
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
+import { execSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 
+const here = path.dirname(fileURLToPath(import.meta.url));
+const repoRoot = path.resolve(here, '..');
 const slug = process.argv[2] || 'a-month-in-one-claude-session';
+const asJson = process.argv.includes('--json');
 const DIR = path.join(os.homedir(), '.claude/projects/-Users-asifahmed-code');
 const files = fs.readdirSync(DIR).filter((f) => f.endsWith('.jsonl'));
 
 const EDIT_TOOLS = new Set(['Write', 'Edit', 'MultiEdit', 'NotebookEdit']);
 const fmtDur = (ms) => {
+  if (!ms || ms < 0) return '—';
   const m = Math.round(ms / 60000);
+  if (m < 1) return '<1m';
   if (m < 60) return `${m}m`;
-  const h = Math.floor(m / 60);
-  return `${h}h ${m % 60}m`;
+  return `${Math.floor(m / 60)}h ${m % 60}m`;
 };
+// Everything to the author's timezone so transcript (UTC) and git (local) line up.
+const fmtPT = (iso) =>
+  iso
+    ? new Date(iso).toLocaleString('en-US', {
+        timeZone: 'America/Los_Angeles',
+        month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
+      })
+    : '—';
 
-function analyze(file) {
-  const raw = fs.readFileSync(path.join(DIR, file), 'utf8');
-  if (!raw.includes(slug)) return null; // fast reject
-  const lines = raw.split('\n');
-  const s = {
-    file, first: null, last: null, models: new Set(), versions: new Set(),
-    instructions: 0, turns: 0, tools: {}, toolTotal: 0,
-    compacts: 0, queued: 0, bridge: 0,
-    editFirst: null, editLast: null, editCount: 0,
-  };
+function publishDate() {
+  for (const ext of ['mdx', 'md']) {
+    try {
+      const out = execSync(
+        `git log --diff-filter=A --follow --format=%aI -1 -- "src/content/blog/${slug}.${ext}"`,
+        { cwd: repoRoot, encoding: 'utf8' },
+      ).trim();
+      if (out) return out;
+    } catch {}
+  }
+  return null;
+}
+
+// First pass over a session: when was THIS post's file edited?
+function editSpan(lines) {
+  let first = null, last = null, count = 0;
+  for (const line of lines) {
+    if (!line.includes(slug)) continue;
+    let o; try { o = JSON.parse(line); } catch { continue; }
+    if (o.type !== 'assistant') continue;
+    const ts = o.timestamp ? Date.parse(o.timestamp) : null;
+    const content = Array.isArray(o.message?.content) ? o.message.content : [];
+    for (const c of content) {
+      if (c?.type === 'tool_use' && EDIT_TOOLS.has(c.name)) {
+        const fp = c.input?.file_path || c.input?.notebook_path || '';
+        if (typeof fp === 'string' && fp.includes(slug) && ts) {
+          first = first ? Math.min(first, ts) : ts;
+          last = Math.max(last || 0, ts);
+          count++;
+        }
+      }
+    }
+  }
+  return first ? { first, last, count } : null;
+}
+
+// Second pass: count activity that happened INSIDE [start, end].
+function scoped(lines, start, end) {
+  const s = { instructions: 0, turns: 0, tools: {}, toolTotal: 0, compacts: 0, bridge: 0, models: new Set(), versions: new Set() };
   for (const line of lines) {
     if (!line.trim()) continue;
     let o; try { o = JSON.parse(line); } catch { continue; }
     const ts = o.timestamp ? Date.parse(o.timestamp) : null;
-    if (ts) { s.first = s.first ? Math.min(s.first, ts) : ts; s.last = Math.max(s.last || 0, ts); }
+    if (ts === null || ts < start || ts > end) continue;
     if (o.version) s.versions.add(o.version);
-    if (o.type === 'queue-operation') s.queued++;
     if (o.type === 'bridge-session') s.bridge++;
     if (o.subtype === 'compact_boundary' || o.compactMetadata) s.compacts++;
-
     const msg = o.message;
-    if (o.type === 'assistant' && msg && typeof msg === 'object') {
+    if (o.type === 'assistant' && msg) {
       s.turns++;
       if (msg.model && msg.model !== '<synthetic>') s.models.add(msg.model);
-      const content = Array.isArray(msg.content) ? msg.content : [];
-      for (const c of content) {
-        if (c && c.type === 'tool_use') {
-          s.tools[c.name] = (s.tools[c.name] || 0) + 1;
-          s.toolTotal++;
-          const fp = c.input && (c.input.file_path || c.input.notebook_path || '');
-          if (EDIT_TOOLS.has(c.name) && typeof fp === 'string' && fp.includes(slug)) {
-            s.editFirst = s.editFirst ? Math.min(s.editFirst, ts) : ts;
-            s.editLast = Math.max(s.editLast || 0, ts);
-            s.editCount++;
-          }
-        }
+      for (const c of Array.isArray(msg.content) ? msg.content : []) {
+        if (c?.type === 'tool_use') { s.tools[c.name] = (s.tools[c.name] || 0) + 1; s.toolTotal++; }
       }
-    } else if (o.type === 'user' && msg && typeof msg === 'object') {
-      // a real instruction = a user prompt, not a tool_result echo
+    } else if (o.type === 'user' && msg) {
       const c = msg.content;
-      const isToolResult = Array.isArray(c) && c.some((x) => x && x.type === 'tool_result');
-      const hasText = typeof c === 'string' || (Array.isArray(c) && c.some((x) => x && x.type === 'text'));
+      const isToolResult = Array.isArray(c) && c.some((x) => x?.type === 'tool_result');
+      const hasText = typeof c === 'string' || (Array.isArray(c) && c.some((x) => x?.type === 'text'));
       if (!isToolResult && hasText) s.instructions++;
     }
   }
   return s;
 }
 
-const sessions = files.map(analyze).filter(Boolean).filter((s) => s.editCount > 0);
-sessions.sort((a, b) => (a.editFirst || a.first) - (b.editFirst || b.first));
-
-if (!sessions.length) {
-  console.log(`No drafting session found for "${slug}" (no Write/Edit of that file in any transcript).`);
-  process.exit(0);
+// Find every session that edited this post, pick the earliest as the drafting one.
+const touching = [];
+for (const file of files) {
+  const raw = fs.readFileSync(path.join(DIR, file), 'utf8');
+  if (!raw.includes(slug)) continue;
+  const lines = raw.split('\n');
+  const span = editSpan(lines);
+  if (span) touching.push({ file, lines, ...span });
 }
+if (!touching.length) { console.log(`No session edited "${slug}".`); process.exit(0); }
+touching.sort((a, b) => a.first - b.first);
 
-console.log(`\n=== Telemetry for post: ${slug} ===`);
-console.log(`Drafting sessions (edited this post's file): ${sessions.length}\n`);
+const draft = touching[0];
+const later = touching.slice(1);
+const pub = publishDate();
+// Authoring window: file first written -> last edited (drafting session). If it
+// was a one-pass write (single edit), the span is a point; fall back to publish.
+const singlePass = draft.count <= 1 || draft.last - draft.first < 30000;
+const winStart = draft.first;
+const winEnd = singlePass ? draft.first : draft.last;
+const m = scoped(draft.lines, winStart, winEnd);
 
-const topTools = (t) => Object.entries(t).sort((a, b) => b[1] - a[1]).slice(0, 6).map(([k, v]) => `${k} ${v}`).join(', ');
+const report = {
+  slug,
+  drafted_session: draft.file.slice(0, 8),
+  started: new Date(winStart).toISOString(),
+  finished_editing: new Date(winEnd).toISOString(),
+  published: pub,
+  authoring_window: singlePass ? 'single pass' : fmtDur(winEnd - winStart),
+  started_to_published: pub ? fmtDur(Date.parse(pub) - winStart) : null,
+  model: [...m.models][0] || 'claude-opus-4-8',
+  cc_versions: [...m.versions],
+  instructions: singlePass ? null : m.instructions,
+  turns: singlePass ? null : m.turns,
+  tool_calls: singlePass ? null : m.toolTotal,
+  compacts: m.compacts,
+  phone_relayed: m.bridge > 0,
+  later_edit_sessions: later.length,
+};
 
-let firstEdit = Infinity, lastEdit = 0, instr = 0, turns = 0, toolTotal = 0, compacts = 0, queued = 0, bridge = 0, editCount = 0;
-const models = new Set(), versions = new Set();
-for (const s of sessions) {
-  console.log(`• ${s.file.slice(0, 8)}  ${new Date(s.editFirst).toISOString().slice(0, 16).replace('T', ' ')} → ${new Date(s.editLast).toISOString().slice(11, 16)}  (edit window ${fmtDur(s.editLast - s.editFirst)})`);
-  console.log(`    ${s.editCount} edits to this post · ${s.instructions} instructions · ${s.turns} turns · ${s.toolTotal} tool calls · ${s.compacts} compacts`);
-  console.log(`    tools: ${topTools(s.tools)}`);
-  firstEdit = Math.min(firstEdit, s.editFirst); lastEdit = Math.max(lastEdit, s.editLast);
-  instr += s.instructions; turns += s.turns; toolTotal += s.toolTotal; compacts += s.compacts;
-  queued += s.queued; bridge += s.bridge; editCount += s.editCount;
-  s.models.forEach((m) => models.add(m)); s.versions.forEach((v) => versions.add(v));
+if (asJson) { console.log(JSON.stringify(report, null, 2)); process.exit(0); }
+
+const top = Object.entries(m.tools).sort((a, b) => b[1] - a[1]).slice(0, 6).map(([k, v]) => `${k} ${v}`).join(', ');
+console.log(`\n=== ${slug} ===`);
+console.log(`drafting session:  ${report.drafted_session}${later.length ? `  (+${later.length} later edit session${later.length > 1 ? 's' : ''})` : ''}`);
+console.log(`started authoring: ${fmtPT(report.started)} PT`);
+console.log(`published:         ${pub ? fmtPT(pub) + ' PT' : 'not committed yet'}`);
+console.log(`authoring window:  ${report.authoring_window}`);
+console.log(`model:             ${report.model}   ·  CC ${report.cc_versions.join(', ') || '—'}`);
+if (singlePass) {
+  console.log(`counts:            single-pass write — no meaningful in-window counts`);
+} else {
+  console.log(`in-window work:    ${m.instructions} instructions · ${m.turns} turns · ${m.toolTotal} tool calls`);
+  console.log(`tools:             ${top}`);
 }
-
-console.log(`\n--- combined ---`);
-console.log(`Model(s):            ${[...models].join(', ')}`);
-console.log(`Claude Code version: ${[...versions].join(', ')}`);
-console.log(`Sessions:            ${sessions.length}`);
-console.log(`Total edits to post: ${editCount}`);
-console.log(`Instructions:        ${instr}   (queued ahead: ${queued})`);
-console.log(`Its turns:           ${turns}   (~${(turns / Math.max(instr, 1)).toFixed(1)} per instruction)`);
-console.log(`Tool calls:          ${toolTotal}`);
-console.log(`Compacts:            ${compacts}`);
-console.log(`Phone-relayed:       ${bridge > 0 ? `yes (${bridge} bridge events)` : 'no'}`);
-console.log(`\nSuggested footer:`);
-console.log(`  drafted across ${fmtDur(lastEdit - firstEdit)} of wall-clock · ${sessions.length} session${sessions.length > 1 ? 's' : ''} · ${toolTotal} tool calls · ${[...models][0] || 'claude'}`);
+console.log(`compacts:          ${m.compacts}`);
+console.log(`phone-relayed:     ${report.phone_relayed ? 'yes' : 'no'}`);
 console.log('');
