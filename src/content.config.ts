@@ -24,6 +24,22 @@ const blog = defineCollection({
 			// Optional: makes this a "link post" (linkblog style). When set, the
 			// title links out to this URL and the post still gets its own permalink.
 			link: z.string().url().optional(),
+			// Build receipt pulled from the Claude Code session that authored the
+			// post (scripts/session-telemetry.mjs). Reviewed before it ships,
+			// rendered as a footer. Numbers are scoped to the authoring window.
+			telemetry: z
+				.object({
+					model: z.string(),
+					ccVersion: z.string().optional(),
+					liveAfterMin: z.number(),
+					redeploys: z.number().default(0),
+					instructions: z.number(),
+					turns: z.number(),
+					toolCalls: z.number(),
+					compacts: z.number().default(0),
+					phoneRelayed: z.boolean().default(false),
+				})
+				.optional(),
 		}),
 });
 
