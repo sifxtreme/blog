@@ -32,7 +32,7 @@ const plural = (n: number, w: string) => `${n} ${w}${n === 1 ? '' : 's'}`;
 		{verb} <b>{t.model}</b>{t.ccVersion ? ` (${t.ccVersion})` : ''} in one Claude
 		Code session. First draft live <b>{live}</b>{
 			t.redeploys > 0 ? (
-				<span>, then <b>{t.redeploys}</b> deploys of polish</span>
+				<span>, then <b>{t.redeploys}</b> {t.redeploys === 1 ? 'deploy' : 'deploys'} of polish</span>
 			) : null
 		}. I typed <b>{t.instructions}</b> {t.instructions === 1 ? 'instruction' : 'instructions'};
 		it took <b>{t.turns}</b> turns and <b>{t.toolCalls}</b> tool calls.{

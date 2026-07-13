@@ -8,6 +8,7 @@ import Footer from '../components/Footer.astro';
 import FormattedDate from '../components/FormattedDate.astro';
 import Header from '../components/Header.astro';
 import TelemetryFooter from '../components/TelemetryFooter.astro';
+import ShareButtons from '../components/ShareButtons.astro';
 
 type Props = CollectionEntry<'blog'>['data'] & {
 	ogImagePath?: string;
@@ -180,6 +181,7 @@ const canonicalUrl = slug
 						<hr />
 					</div>
 					<slot />
+					{canonicalUrl && <ShareButtons title={title} url={canonicalUrl} />}
 					{telemetry && <TelemetryFooter telemetry={telemetry} aiUsage={aiUsage} />}
 				</div>
 			</article>

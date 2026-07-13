@@ -1,0 +1,163 @@
+---
+title: 'An old Claude Code rejected my settings and deleted 2,055 sessions'
+description: 'I set cleanupPeriodDays to 365. A pinned, older Claude Code could not parse my settings file, threw the whole file away, and fell back to deleting after 30 days.'
+pubDate: '2026-07-13'
+tags: ['claude', 'files-are-king', 'postmortem']
+aiUsage: 'assisted'
+telemetry:
+  model: 'claude-opus-4-8'
+  ccVersion: '2.1.207'
+  liveAfterMin: 31
+  redeploys: 14
+  instructions: 5
+  turns: 83
+  toolCalls: 35
+  compacts: 0
+  phoneRelayed: false
+---
+
+Four days ago I published a post that said: Claude Code deletes your session transcripts after 30 days, so [change one setting and they stick around for a year](/blog/keep-your-claude-sessions/).
+
+I had changed the setting. It said 365.
+
+Today I went looking for a session from May and there wasn't one. There was nothing from May at all. Nothing from April either. The oldest transcript on my machine was from June 13, exactly thirty days ago, and the same was true on my other machine.
+
+2,055 sessions, dated March 27 through June 12. That number is the count of records in my search index whose transcript file no longer exists on disk. No Time Machine, no snapshots, nothing recoverable.
+
+## The setting was set
+
+This is what made it feel impossible.
+
+`~/.claude/settings.json` said `"cleanupPeriodDays": 365`. Valid JSON. No managed-settings file, no project override, no `settings.local.json`. And I could prove its history, because a nightly job commits that file to git: it was 90 from May 20 to July 9, then 365. Never absent. Never 30.
+
+Yet the survivors began at exactly thirty days back, and the cliff was rolling. Sessions from early June were alive in my search index and gone from disk a few days later. Something was sweeping at 30 days, on a machine configured for 365.
+
+Thirty is not a number I picked. Thirty is the number Claude Code falls back to when the setting ISN'T THERE. So whatever was doing this wasn't overriding my setting. It was never seeing it.
+
+## The cause
+
+My agent stack runs on the Claude Agent SDK, pinned to `@anthropic-ai/claude-code@1.0.128`. That package doesn't call out to some daemon. It bundles its own `cli.js` and runs it. So while my laptop runs Claude Code 2.1.207, my agent has quietly been running 1.0.128, a build from a different era, against the same `~/.claude`.
+
+And 1.0.128 cannot parse my settings file.
+
+Its hooks config is validated as a zod record keyed by an enum of the hook events that version knew about: `PreToolUse`, `PostToolUse`, `Notification`, `UserPromptSubmit`, `SessionStart`, `SessionEnd`, `Stop`, `SubagentStop`, `PreCompact`.
+
+An enum-keyed record REJECTS unknown keys. It doesn't drop them. It fails.
+
+My settings file, written by the modern client, declares hooks for `PermissionRequest`, `SubagentStart`, and `PostToolUseFailure`. Three events that didn't exist yet in 1.0.128. They have been sitting in there since April 16.
+
+Here is the part that turns a config incompatibility into data loss. When validation fails, the loader doesn't discard the key it didn't like. It discards the entire file:
+
+```js
+// paraphrased from the 1.0.128 bundle
+const parsed = schema.safeParse(raw)
+if (!parsed.success) return { settings: null, errors: [...] }
+```
+
+`cleanupPeriodDays: 365` goes in the bin along with everything else. Cleanup then reads the setting it no longer has, takes its default, and deletes by file mtime:
+
+```js
+cleanupPeriodDays = (settings || {}).cleanupPeriodDays ?? 30   // -> 30
+// delete every *.jsonl under <configDir>/projects with an older mtime
+```
+
+It runs at startup, seconds after the process spawns.
+
+And it says nothing. I checked, because it's the obvious objection: that loader returns an `errors` array, so maybe Claude Code warned me and my agent threw the warning away. It doesn't. Running the old build against my real settings file, with everything captured, it deleted a 200-day-old transcript and wrote **zero bytes to stderr**. Nothing in stdout mentioned settings, hooks, schema, or validation. The only thing it printed was an unrelated auth error.
+
+<figure style="margin:2rem 0;">
+	<a href="/diagrams/settings-parse-chain.light.svg" target="_blank" rel="noopener" style="display:block;cursor:zoom-in;">
+		<picture>
+			<source srcset="/diagrams/settings-parse-chain.dark.svg" media="(prefers-color-scheme: dark)" />
+			<img
+				src="/diagrams/settings-parse-chain.light.svg"
+				alt="Two lanes reading one settings file. My laptop, running a current Claude, reads the settings file, understands every key, and keeps sessions for 365 days. My agent, running an old Claude pinned inside its SDK, reads the same settings file, hits one key it has never heard of, throws away the whole file including the instruction to keep for 365 days, and falls back to its default of deleting after 30 days."
+				style="width:100%;height:auto;border:1px solid rgb(var(--border));border-radius:12px;"
+			/>
+		</picture>
+	</a>
+	<figcaption style="text-align:center;color:rgb(var(--gray));font-size:0.85em;margin-top:0.6rem;">Same file. Two readers. Only one of them throws it away. <a href="/diagrams/settings-parse-chain.light.svg" target="_blank" rel="noopener" style="color:inherit;">(click to enlarge)</a></figcaption>
+</figure>
+
+## The reproduction
+
+This is the part I'd want if I were you, and it's safe to run. `CLAUDE_CONFIG_DIR` relocates BOTH the settings path and the projects directory, so the whole thing happens inside a temp dir and cannot touch your real transcripts.
+
+Plant two files in `$SCRATCH/projects/-probe/`, one backdated 200 days and one brand new. Point the old CLI at the scratch dir. Close stdin, or it will sit there waiting for a TTY.
+
+```js title="probe.mjs"
+cp.spawnSync(process.execPath, [CLI_1_0_128, "-p", "ok", "--output-format", "json"], {
+  cwd: root,
+  input: "",                                  // closed stdin: cannot hang
+  timeout: 20000,
+  env: { ...process.env, CLAUDE_CONFIG_DIR: scratchConfigDir },
+});
+```
+
+Three runs, three settings files:
+
+```
+my real settings.json         OLD-200d = DELETED   NEW-today = alive
+same, with hooks removed      OLD-200d = alive     NEW-today = alive
+{ cleanupPeriodDays: 365 }    OLD-200d = alive     NEW-today = alive
+```
+
+The new file always survives, so this is age-based, not a blanket wipe. The old file dies only when the hooks block is there. Then feed the hook events back one at a time and the culprits fall out:
+
+```
+SessionStart          ok
+UserPromptSubmit      ok
+PreToolUse            ok
+PostToolUse           ok
+Stop                  ok
+Notification          ok
+PermissionRequest     *** rejects settings -> deletes at 30d ***
+SessionEnd            ok
+SubagentStart         *** rejects settings -> deletes at 30d ***
+PostToolUseFailure    *** rejects settings -> deletes at 30d ***
+PreCompact            ok
+```
+
+Three strings in a config file. That's the whole bug.
+
+The runnable version, plus a guard shim, is [in a gist](https://gist.github.com/sifxtreme/2ed884113aebab1acd6a268cd4ce7925). Point it at any `@anthropic-ai/claude-code/cli.js` sitting in a `node_modules` and see for yourself.
+
+## Who this reaches
+
+The bug is small and complete on its own: an old client, a config file it can't parse, whole-file rejection, and a destructive fallback. One launch of that binary deletes everything already older than thirty days. It needs no help from anything else.
+
+My agent spawns it constantly, a task queue every five minutes plus monitors and model fallbacks, so the sweep ran over and over instead of once. That's why the cliff kept advancing instead of sitting still as a single dated event, and it's a big part of why I didn't catch it.
+
+My two machines mirror `~/.claude/projects` between them, so the deletions didn't stay on the box. They replicated to the laptop, which had done nothing wrong and runs a version that reads the file correctly.
+
+If you run Claude Code the normal way, one machine, one current version, none of this touches you. If you have a pinned SDK sharing `~/.claude` with a modern client, the bug is already in your house.
+
+## What fooled me
+
+Two confident wrong answers, both worth naming, because the second one is a mistake I'd make again if I weren't careful.
+
+**"It's the machine that can't log in."** The box had gotten logged out recently, so every `claude` there exits in about a second. I planted backdated files, booted claude repeatedly, and watched them die there while surviving on my laptop. Two out of eleven runs. It fit.
+
+It was garbage. Those deletions weren't caused by MY invocations. They were caused by the agent's, running in the background the whole time, and my probes just happened to be lying there when one fired. When I stopped the agent and ran the identical test, zero of eight of my runs deleted anything. On a busy machine, "I ran X and then Y happened" is not evidence. Y was going to happen anyway.
+
+**"The SDK doesn't load filesystem settings."** Plausible. Wrong. It loads them fine. It just can't parse them.
+
+And underneath both: I spent an hour reasoning from a decompiled copy of Claude Code that did not match the binary actually installed. It told me cleanup fires on a ten-minute timer, so I "proved" a one-second process couldn't have done it, and threw out a correct hypothesis. Reading the wrong source is worse than reading no source, because it produces confident nonsense.
+
+## What I changed
+
+Not the setting. The setting was already right.
+
+**The old client gets its own config directory.** My agent now runs with `CLAUDE_CONFIG_DIR=~/.claude-forge`, which moves its settings and its projects directory together. It can reject configs all day now. It can only reach its own folder. It loses nothing, because it was already discarding my settings and running on defaults.
+
+My laptop had the same old binary sitting in a `node_modules`, so that copy is shimmed: run it without a config dir and it forces itself into a sandbox and says so.
+
+**Deletions don't cross machines anymore.** My laptop refuses incoming deletes for that folder, so a bad parse on one box can't reach the other.
+
+**The transcripts get copied somewhere nothing manages.** A daily append-only copy into a directory outside `~/.claude` and outside every sync folder. It never deletes. `cleanupPeriodDays` is a preference. This is a backup. I had been treating one as the other.
+
+**A canary.** A 60-day-old file that, under a 365-day setting, must never disappear. The daily job checks it and tells me in Slack if it's gone. Because the deletion wasn't the expensive part. The silence was. It ran for months and I only found it by accident, while writing a different post.
+
+The sessions aren't coming back. What I have is a search index that still holds each one's first message, last message, and a summary.
+
+I can still find them. I just can't open them.

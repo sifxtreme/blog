@@ -8,9 +8,11 @@
   "scripts": {
     "dev": "astro dev",
     "og": "node scripts/gen-og-cards.mjs",
-    "build": "node scripts/gen-og-cards.mjs && astro build",
+    "build": "node scripts/check-telemetry.mjs && node scripts/gen-og-cards.mjs && astro build",
     "preview": "astro preview",
-    "astro": "astro"
+    "astro": "astro",
+    "check:telemetry": "node scripts/check-telemetry.mjs",
+    "telemetry": "node scripts/session-telemetry.mjs"
   },
   "dependencies": {
     "@astrojs/mdx": "^7.0.2",

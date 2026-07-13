@@ -1,0 +1,236 @@
+---
+title: 'Keeping the sessions was the easy part'
+description: 'I keep every Claude Code session as a file. Then I needed to find one. grep across a couple thousand JSONL transcripts is slow and dumb, so I built a local hybrid search over them.'
+pubDate: '2026-07-13'
+tags: ['claude', 'files-are-king', 'search']
+aiUsage: 'assisted'
+telemetry:
+  model: 'claude-opus-4-8'
+  ccVersion: '2.1.207'
+  liveAfterMin: 259
+  redeploys: 1
+  instructions: 5
+  turns: 162
+  toolCalls: 67
+  compacts: 0
+  phoneRelayed: false
+---
+
+import StatTable from '../../components/StatTable.astro';
+
+I keep almost every Claude Code session. [Text is cheap](/blog/keep-your-claude-sessions/), the transcripts are plain files on my machine, and I'd rather have them than not.
+
+Keeping them turned out to be the easy part.
+
+Because the question I actually ask is never "show me my sessions." It's "which session were we working on Feature X in?" I write the important stuff down in docs, but a doc records the DECISION. The session records how I got there: the dead end I went down first, the command that finally worked, the thing I tried at 11pm that didn't.
+
+So I go looking. And a couple thousand transcripts sitting in `~/.claude/projects/` is exactly enough to make that annoying.
+
+## grep is the wrong tool for this
+
+Not because it's slow. grep across 2.6 GB is fine.
+
+It's that grep needs the word, and I don't have the word. I have the SHAPE of the thing: "that time the deploy said it was live but the old build was still serving." Nowhere in that session did I type the sentence I'm now searching with. And when I guess at a keyword I get four hundred hits with no ranking, most of them buried inside a pasted stack trace, because a session transcript isn't prose. It's JSONL, one object per line, and most of the bytes are tool calls and their results.
+
+I don't want every line that contains a word. I want the five sessions that were ABOUT a thing.
+
+## A session's fingerprint is three messages
+
+Here's what made this tractable. To RECOGNIZE a session, I don't need the session. I need just enough to know it's the one.
+
+Three messages do it:
+
+- my first message, which is what I asked for
+- my last message, which is where it actually ended up
+- the last thing Claude said, which is roughly what it concluded
+
+Cap that at 3,500 characters and you have a fingerprint that fits inside an embedding with room to spare. Everything in between is tool calls and diffs, which is exactly the noise that was drowning grep.
+
+```js title="lib/chunker.mjs"
+const content = truncate([
+  `FIRST USER: ${firstUser}`,
+  userMsgs.length > 1 ? `LAST USER: ${lastUser}` : "",
+  lastAsst ? `LAST ASSISTANT: ${lastAsst}` : "",
+].filter(Boolean).join("\n\n"));
+```
+
+Anything with fewer than two of my messages gets skipped. Those are the sessions I opened, typed one thing into, and abandoned. They aren't worth an embedding.
+
+Then I pointed the same indexer at two more piles: my daily session journals, and my docs folder, split on `##` headings so each section is its own hit. Same pipeline, same table, one ranked list at the end.
+
+<figure style="margin:2rem 0;">
+	<picture>
+		<source srcset="/diagrams/findsession-index.dark.svg" media="(prefers-color-scheme: dark)" />
+		<img
+			src="/diagrams/findsession-index.light.svg"
+			alt="Three sources feed one fingerprint: 2,491 session transcripts, 131 daily journals, and 5,948 doc sections. The fingerprint is the first message, last message, and last reply, capped at 3,500 characters. It goes to two local Ollama models, nomic-embed-text for a 768-dimension vector and qwen2.5:14b for a summary and title, both landing in a 104 MB SQLite file. The title model also appends a custom-title line back into the transcript it read."
+			style="width:100%;height:auto;border:1px solid rgb(var(--border));border-radius:12px;"
+		/>
+	</picture>
+	<figcaption style="text-align:center;color:rgb(var(--gray));font-size:0.85em;margin-top:0.6rem;">Three sources, one fingerprint, one file. The dotted line is the part I didn't plan.</figcaption>
+</figure>
+
+<StatTable
+	caption="what's in the index today"
+	rows={[
+		{ label: 'Chunks', value: '8,570', note: 'one row per session, journal, or doc section' },
+		{ label: 'Sessions', value: '2,491' },
+		{ label: 'Doc sections', value: '5,948', note: 'PRDs and runbooks, split on every ##' },
+		{ label: 'Journals', value: '131' },
+		{ label: 'Index size', value: '104 MB', note: 'one SQLite file, rows + keywords + vectors' },
+		{ label: 'Query time', value: 'under half a second', note: 'including embedding the query' },
+		{ label: 'Monthly cost', value: '$0', note: 'both models run on the laptop' },
+	]}
+/>
+
+## Two searches, because one isn't enough
+
+Keyword search and vector search fail in opposite directions, which is the whole reason to run both.
+
+Keyword nails `cleanupPeriodDays`. An embedding will happily hand me twenty things that are vaguely about configuration. But keyword is useless for "the thing where my sessions kept disappearing," and that is the query I actually type, because that's how I remember it.
+
+So I run both. SQLite does both. FTS5 for keywords with a porter stemmer, and `sqlite-vec` for a 768-dimension vector column, living in the same file.
+
+```sql title="lib/db.mjs"
+CREATE VIRTUAL TABLE chunks_fts USING fts5(
+  title, content,
+  content='chunks',          -- external content: no second copy of the text
+  content_rowid='id',
+  tokenize='porter unicode61'
+);
+
+CREATE VIRTUAL TABLE vec_chunks USING vec0(
+  embedding float[768]
+);
+```
+
+Then you have to merge two ranked lists, and this is where I expected to lose a day. You can't compare a BM25 score to a cosine distance. Different units, different scales, and normalizing them into each other is a tuning exercise with no correct answer.
+
+The trick is that you don't need the scores. You need the RANKS.
+
+Reciprocal rank fusion says: a result is worth `1 / (60 + its rank)` in each list, and you add up what it earned across both.
+
+```js title="findsession.mjs" {1,6}
+const K = 60;
+const scores = new Map();
+function add(rows) {
+  rows.forEach((r, i) => {
+    const prev = scores.get(r.id) || { row: r, score: 0 };
+    prev.score += 1 / (K + i + 1);
+    scores.set(r.id, prev);
+  });
+}
+add(ftsRows);   // keyword hits, best first
+add(vecRows);   // vector hits, best first
+
+const merged = [...scores.values()].sort((a, b) => b.score - a.score);
+```
+
+Something both searches liked floats to the top. Something one search loved and the other never saw still places. The 60 is a dampener from the original paper that stops the first result from running away with it. That's the entire algorithm, it's about ten lines, and I have never once wanted to tune it.
+
+<figure style="margin:2rem 0;">
+	<picture>
+		<source srcset="/diagrams/findsession-query.dark.svg" media="(prefers-color-scheme: dark)" />
+		<img
+			src="/diagrams/findsession-query.light.svg"
+			alt="A query splits two ways. One path goes to FTS5 keyword search with a porter stemmer. The other embeds the query with nomic-embed-text and runs a vec0 nearest-neighbor search by cosine distance. Each returns a ranked list. Reciprocal rank fusion combines them by adding 1 divided by 60 plus rank, producing the top 5 hits across sessions, journals, and docs."
+			style="width:100%;height:auto;border:1px solid rgb(var(--border));border-radius:12px;"
+		/>
+	</picture>
+	<figcaption style="text-align:center;color:rgb(var(--gray));font-size:0.85em;margin-top:0.6rem;">Neither list wins. They vote.</figcaption>
+</figure>
+
+What comes out:
+
+```
+$ findsession "syncthing conflict"
+
+[2] 💬 2026-06-11  score=0.0292
+    i have another syncthing conflict, can you look at it and fix.
+    FIRST USER: i have another syncthing conflict, can you look at it…
+    /Users/asifahmed/.claude/projects/-Users-asifahmed-code/5ac30ab5….jsonl
+
+[3] 📄 2026-02-17  score=0.0164
+    reference/SYNCTHING_GUIDE.md › Syncthing Reference
+    …brew services restart syncthing # Open web UI…
+
+Open with: findsession --open <#>
+```
+
+Sessions, journals, and docs ranked against each other in one list, which turns out to be exactly what I wanted. I usually don't care WHICH of the three has my answer.
+
+## No API key, no vector database
+
+Embeddings come from `nomic-embed-text` in Ollama. It's a 274 MB model. Summaries come from `qwen2.5:14b`, also local. Storage is one SQLite file. A launchd job re-runs the indexer every 15 minutes, and files are keyed on path plus mtime, so an unchanged file costs a `stat` and nothing else.
+
+Nothing leaves the machine and there's no service to sign up for.
+
+That isn't purity, it's the obvious call. My session transcripts are the most sensitive pile of text I own. They have my code, my company's data, and every dumb question I've ever asked in them. Shipping all of that to an embeddings API to get search over it is a bad trade when a 274 MB model on my laptop is good enough. And it IS good enough. This is the kind of job small local models quietly got great at while everyone was watching the frontier.
+
+## The indexer writes back into the sessions
+
+This is the part I didn't plan.
+
+Once a local model is already reading every session to summarize it, naming one is nearly free. So the indexer generates a short slug and appends a line to the transcript:
+
+```json
+{"type":"custom-title","customTitle":"syncthing-conflict-fix","sessionId":"5ac30ab5…"}
+```
+
+That's the same line Claude Code writes when you run `/title` yourself. Last line wins, so if I ever rename a session by hand, my title beats the machine's and stays that way.
+
+The payoff isn't in the search tool at all. It's that `claude --resume` stopped being a wall of truncated first messages and became a list I can actually read.
+
+## The bug: I lied about an mtime and Syncthing forked my sessions
+
+Writing back into a transcript means touching it. Which means my own indexer sees a changed file and re-embeds it. Every 15 minutes. Forever.
+
+My first fix was clever. After appending the title, rewind the file's mtime to what it was before, so the reindexer skips it.
+
+It worked. It also started forking my sessions.
+
+My two Macs sync `~/.claude` over Syncthing, and Syncthing decides which copy of a file is newer by looking at the mtime. By rewinding it, I hadn't just hidden the write from my indexer. I'd hidden it from Syncthing, which now had two files with the same timestamp and different contents and no way to order them. So it did the safe thing and kept both. One `.sync-conflict` copy, every night.
+
+<figure style="margin:2rem 0;">
+	<picture>
+		<source srcset="/diagrams/findsession-mtime.dark.svg" media="(prefers-color-scheme: dark)" />
+		<img
+			src="/diagrams/findsession-mtime.light.svg"
+			alt="Two lanes. What I shipped first: append the title to the transcript, rewind the mtime so my own indexer skips it, Syncthing then sees the same mtime with different bytes, and it keeps both copies, producing one sync-conflict file per night. What actually works: append the title, let the mtime advance, record the new mtime in the index instead, and Syncthing orders it fine, with only one Mac allowed to write."
+			style="width:100%;height:auto;border:1px solid rgb(var(--border));border-radius:12px;"
+		/>
+	</picture>
+	<figcaption style="text-align:center;color:rgb(var(--gray));font-size:0.85em;margin-top:0.6rem;">The mtime isn't yours. Other programs are reading it.</figcaption>
+</figure>
+
+Two things were wrong here and both needed fixing.
+
+Don't lie to the filesystem to work around your own code. An mtime isn't private state, it's a shared signal, and something else was making decisions with it. So now the mtime advances honestly and I tell the INDEX about the new value instead, which is a one-line update to the row I just wrote.
+
+And elect a single writer. Two machines appending to the same synced file is a race that no timestamp scheme survives, so exactly one machine is allowed to write titles. That check has its own trap: `os.hostname()` returns `A-Ahmed` on BOTH of my Macs. The only thing that actually tells them apart is `scutil --get ComputerName`.
+
+## Three traps if you build this
+
+`sqlite-vec` will not accept a JavaScript `Number` as a rowid. It wants a `BigInt`, and the error you get when you don't give it one says nothing about types.
+
+Ollama runs `nomic-embed-text` with a 2,048 token context by default, not the 8,192 the model card advertises. Anything past that is dropped without a word, which is a fun one to chase: nothing errors, your search just quietly gets worse.
+
+And FTS5's `MATCH` is not free text. Quote each term and `OR` them together yourself, or the first query someone types with a hyphen in it throws a syntax error.
+
+## The code
+
+Two gists.
+
+[The whole thing](https://gist.github.com/sifxtreme/608d9a7bcff328cb9f016a6ceb1d82f2), which is what I actually run: the CLI, the indexer, the chunker, the summarizer, the titler, and the launchd plist that fires every 15 minutes.
+
+And [the idea in one file](https://gist.github.com/sifxtreme/1632892a0f2b45e7b7e40b41e5e2c253), if you'd rather see the shape of it than my paths. About 150 lines. Point it at a folder of text files and it'll do the same trick: index them, embed them, and search them by keyword and meaning at once.
+
+```bash
+npm i better-sqlite3 sqlite-vec
+ollama pull nomic-embed-text
+
+node hybrid-search.mjs index ~/notes
+node hybrid-search.mjs search "the thing where deploys lie about being live"
+```
+
+That's the part worth stealing. The rest is just me pointing it at my own life.
