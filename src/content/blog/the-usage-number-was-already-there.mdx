@@ -8,7 +8,7 @@ telemetry:
   model: 'claude-opus-4-8'
   ccVersion: '2.1.210'
   liveAfterMin: 13
-  redeploys: 3
+  redeploys: 4
   instructions: 2
   turns: 25
   toolCalls: 8
@@ -74,4 +74,19 @@ The file only updates while a Claude Code session is open and rendering, so when
 
 ## The code
 
-It's on GitHub as [claude-usage-bar](https://github.com/sifxtreme/claude-usage-bar). The native app is one Swift file, the writer is a small Node CLI with no dependencies, and there's a SwiftBar version in there too if you already run SwiftBar. If you want the idea without my repo it's really two moves: point your statusline at a script that saves the `rate_limits` block to a file, then read that file from wherever you want to see the number. The menu bar was just where I wanted mine.
+It's on GitHub as [agent-usage-bar](https://github.com/sifxtreme/agent-usage-bar). The native app is one Swift file, the writer is a small Node CLI with no dependencies, and there's a SwiftBar version in there too if you already run SwiftBar. If you want the idea without my repo it's really two moves: point your statusline at a script that saves the `rate_limits` block to a file, then read that file from wherever you want to see the number. The menu bar was just where I wanted mine.
+
+## Update: it does Codex too now
+
+A couple hours after posting this I figured the same trick had to work for Codex, which I lean on just as much, and it does. Codex writes the exact same kind of `rate_limits` data to disk, into its newest session log, every time you run it. So I read that too and stacked both tools in one menu-bar item: `CC` for Claude Code, `CX` for Codex. I renamed the project to **agent-usage-bar** while I was at it, because it isn't just a Claude thing anymore.
+
+<figure style="margin:2rem 0;text-align:center;">
+	<img
+		src="/agent-usage-bar-menubar.png"
+		alt="A macOS menu bar showing two stacked rows: CC 12% 28% for Claude Code, CX 14% for Codex."
+		style="width:190px;height:auto;image-rendering:crisp-edges;border:1px solid rgb(var(--border));border-radius:8px;"
+	/>
+	<figcaption style="color:rgb(var(--gray));font-size:0.85em;margin-top:0.6rem;">Both now. CC is Claude Code, CX is Codex.</figcaption>
+</figure>
+
+Digging into Codex taught me one more thing: OpenAI removed the Codex 5-hour cap in July 2026, so Codex reports a weekly number only right now. My own machine showed that before any doc did, which is the whole theme of this post repeating itself. The reader maps each window by its size, so if the 5-hour limit ever comes back, that empty column just fills in.
