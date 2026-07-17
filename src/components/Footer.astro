@@ -9,7 +9,7 @@ const today = new Date();
 		tech or philosophy or leadership.
 	</span>
 	<span>&copy; {today.getFullYear()} {SITE_TITLE}</span>
-	<span class="built">Every post says how AI was used.</span>
+	<span class="built"><a href="/how-these-are-written/">Every post says how AI was used.</a></span>
 </footer>
 <style>
 	footer {
@@ -28,5 +28,10 @@ const today = new Date();
 	}
 	.built {
 		opacity: 0.75;
+	}
+	.built a {
+		color: inherit;
+		text-decoration: underline;
+		text-underline-offset: 2px;
 	}
 </style>

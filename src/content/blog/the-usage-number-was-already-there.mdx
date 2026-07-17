@@ -1,0 +1,77 @@
+---
+title: 'The usage number was already there'
+description: 'I kept typing /usage and opening the settings page too many times a day, so I put my 5-hour and weekly Claude limits in the menu bar. The number was sitting in the statusline Claude Code hands you the whole time. I almost built the version that reads your keychain instead.'
+pubDate: '2026-07-17'
+tags: ['claude', 'files-are-king', 'macos']
+aiUsage: 'assisted'
+telemetry:
+  model: 'claude-opus-4-8'
+  ccVersion: '2.1.210'
+  liveAfterMin: 13
+  redeploys: 3
+  instructions: 2
+  turns: 25
+  toolCalls: 8
+  compacts: 0
+  phoneRelayed: false
+---
+
+A few times a day I want to know one number: how much of my Claude usage is left, on the 5-hour window and the weekly one. For a while my answer was to type `/usage` in Claude Code or open the settings page in a browser tab, and I did that way more than a number two keystrokes away should make you do. So I built a small Mac utility that keeps both numbers up in the menu bar, always there, nothing to click.
+
+<figure style="margin:2rem 0;text-align:center;">
+	<img
+		src="/claude-usage-bar-menubar.png"
+		alt="A macOS menu bar showing two stacked lines: 5h 21% on top, wk 24% under it."
+		style="width:180px;height:auto;image-rendering:crisp-edges;border:1px solid rgb(var(--border));border-radius:8px;"
+	/>
+	<figcaption style="color:rgb(var(--gray));font-size:0.85em;margin-top:0.6rem;">Two numbers. Up there all the time.</figcaption>
+</figure>
+
+That's the boring version of the story, and here's the part that made it worth writing down.
+
+## The number was already there
+
+It turns out I never had to ask Anthropic for the number, because Claude Code already knows it and already hands it to me. Every time it repaints its status line it pipes a blob of JSON to whatever command you've set as your statusline, and recent versions put your rate limits right in it:
+
+```json title="what the statusline gets, on every render"
+{
+  "rate_limits": {
+    "five_hour": { "used_percentage": 22, "resets_at": 1784311200 },
+    "seven_day": { "used_percentage": 24, "resets_at": 1784736000 }
+  }
+}
+```
+
+`used_percentage` is 0 to 100, `resets_at` is a unix timestamp, and that's the whole thing. The number I kept walking across a browser tab to read was being handed to my own terminal a few times a second, so the tool never needed an API. It just needed to stop throwing that number away.
+
+## The version I almost shipped
+
+My first instinct was worse, and I want to own it because it's the interesting mistake. Claude Code keeps your login token in the macOS Keychain, and there's an internal endpoint, `/api/oauth/usage`, that returns the same two numbers, so I wired it up and it worked on the first try, which is exactly the problem.
+
+Sit with what that build actually is: a menu bar app that reads your credentials out of the Keychain and polls an undocumented endpoint on a loop, forever, for a number already sitting in your statusline. I ran it past Codex for a second opinion before committing, and it said the thing I was already starting to feel, which was to stop reading the token and stop hitting the private endpoint, because the honest source had been there the WHOLE time. I just liked my clever version too much to see it, so I threw it out.
+
+## Writer, file, reader
+
+What's left is deliberately dumb.
+
+```text
+Claude Code statusline  ->  hook writes usage.json  ->  menu bar reads it
+```
+
+A hook registered as my statusline reads the payload and writes a small file, and anything that wants to show the number just reads that file back. That's the whole design, a writer and a reader with no network in either half. The file holds two percentages and two timestamps and nothing else, so there's nothing in it I'd mind leaking, which is the bar I want a local file like this to clear.
+
+## SwiftBar couldn't stack two lines
+
+I wanted the numbers stacked, 5h on top and weekly under it, and my first reader was a SwiftBar plugin, which won't do that. Give it two lines and it ROTATES them, showing one and then the other, which is worse than useless for something you're meant to read at a glance. So the reader became a small native app instead, about two hundred lines of Swift wrapped around an `NSStatusItem` with a real two-line title, reading the same file, refreshing on a timer and when you open the menu, and coloring itself for a light or a dark menu bar.
+
+## The source I skipped made a good ruler
+
+Here's the turn I liked. I didn't use the OAuth endpoint as my data source, but it makes a great referee, so to trust the whole chain I read my snapshot file and compared it against what that endpoint reported live. My file said 5h was 22 and weekly was 24, the endpoint said 23 and 25, off by one because I'd burned a little more usage in the seconds between the two reads. They agree, which means the boring path from statusline to file to menu bar is carrying the REAL number and not just a plausible one. The source I refused to build on turned out to be exactly good enough to check against.
+
+## The one catch
+
+The file only updates while a Claude Code session is open and rendering, so when I'm not working the menu bar just shows the last value it saw. That's fine, because my usage isn't moving when I'm not using Claude. The one case it lags is usage I spend on my phone or another machine, and even that catches up the next time a session renders on my laptop.
+
+## The code
+
+It's on GitHub as [claude-usage-bar](https://github.com/sifxtreme/claude-usage-bar). The native app is one Swift file, the writer is a small Node CLI with no dependencies, and there's a SwiftBar version in there too if you already run SwiftBar. If you want the idea without my repo it's really two moves: point your statusline at a script that saves the `rate_limits` block to a file, then read that file from wherever you want to see the number. The menu bar was just where I wanted mine.
