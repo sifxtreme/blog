@@ -1,0 +1,42 @@
+---
+// A top-of-post pointer to the code (repo or gist). The rule: if a post links
+// to a repo/gist, that link goes at the TOP so people who just want the code
+// don't have to read the story. Used inline from MDX, right after the imports:
+//   <CodeLink href="https://github.com/..." label="agent-usage-bar" />
+interface Props {
+	href: string;
+	label?: string;
+}
+const { href, label = 'GitHub' } = Astro.props;
+---
+
+<div class="code-link">
+	<span class="code-link__lead">Just here for the code?</span>
+	<a href={href} target="_blank" rel="noopener">{label} →</a>
+</div>
+
+<style>
+	.code-link {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: baseline;
+		gap: 0.55em;
+		margin: 0 0 2rem;
+		padding: 0.7em 1em;
+		border: 1px solid rgb(var(--border));
+		border-radius: 10px;
+		background: rgba(var(--gray), 0.06);
+		font-size: 0.92rem;
+	}
+	.code-link__lead {
+		color: rgb(var(--gray));
+	}
+	.code-link a {
+		color: var(--accent);
+		font-weight: 600;
+		text-decoration: none;
+	}
+	.code-link a:hover {
+		text-decoration: underline;
+	}
+</style>
