@@ -26,13 +26,14 @@ const MAP: Record<AIUsage, { icon: string; label: string; detail: string }> = {
 	assisted: {
 		icon: '🤖',
 		label: 'AI-assisted',
-		detail: 'I directed the piece and edited every line; AI helped draft it.',
+		detail:
+			'I directed the piece and edited it; AI helped draft. How hard I edited varies by post, which is why the badge is here.',
 	},
 	'ai-written': {
 		icon: '🦾',
 		label: 'Written by AI',
 		detail:
-			'AI wrote this one end to end. I gave it the goal and the numbers, reviewed it, and hit publish. The words are the model\'s, not mine.',
+			'AI wrote this one end to end. I gave it the goal and the numbers, gave it a light pass, and hit publish. The words are the model\'s, not mine.',
 	},
 };
 
