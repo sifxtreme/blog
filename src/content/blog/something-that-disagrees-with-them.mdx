@@ -1,0 +1,94 @@
+---
+title: 'Everyone should have something that disagrees with them'
+description: "Your AI agrees with you all day, and the more senior you get, the more the people around you do too. Agreement is the house default in both systems. Here's a block you can paste in front of the model to turn some of it off, and the way that fix fails."
+pubDate: '2026-07-22'
+tags: ['claude', 'ai']
+aiUsage: 'assisted'
+telemetry:
+  model: 'claude-opus-4-8'
+  ccVersion: '2.1.217'
+  liveAfterMin: 14
+  redeploys: 4
+  instructions: 10
+  turns: 106
+  toolCalls: 50
+  compacts: 0
+  phoneRelayed: false
+---
+
+import CodeLink from '../../components/CodeLink.astro';
+
+<CodeLink href="https://gist.github.com/sifxtreme/8166ce7f17ea342373567774250254c7" label="the prompt, as a gist" />
+
+Type an idea into an AI and you get a plan back. Good idea, you get a plan. Garbage idea, you get a plan, and it arrives in the same shape with the same warm line on top, which is why you can't feel the difference from the inside.
+
+That isn't something anybody forgot to fix. These models get tuned on what people rate highly, people rate agreement highly, and so agreement is the house default. The model has no stake in whether your idea is still alive in a month. It gets graded on being useful right now, and the fastest way to look useful is to start building whatever you just said.
+
+## Push on something it got right
+
+Here's the test that made me stop reading the tone as a signal. Take an answer the model gave you that you know is CORRECT, and tell it you don't think that's right.
+
+Most of the time it will fold. It apologizes, it revises, and it hands you back a worse answer than the one it had. It usually doesn't ask which part you're objecting to, because asking is friction and folding is smooth, and smooth is what got rewarded.
+
+A thing that caves when you push on a right answer is not going to hold the line when you push on a wrong one. That's the whole problem in one interaction, and it takes about a minute to run on whatever tool you already use.
+
+## It gets worse the higher you sit
+
+If you run something, the people around you have mostly stopped arguing with you, and none of them decided to. Your calendar got tight, so disagreement started costing them a meeting they'd have to request. You reacted badly once, years ago, and somebody remembers. You sign off on their comp. None of that requires anyone to be a coward, it's just the ordinary math of reporting to a person.
+
+So you float an idea and collect three yeses, and you read that as validation. It's attendance.
+
+Now add a tool that also says yes, that's awake at midnight, that never has to request the meeting. Everything you believe is now confirmable on demand by something with no downside if you're wrong. The AI didn't create that problem. It removed the last bit of FRICTION holding it back, which was that agreement used to require somebody else's time.
+
+## The expensive failure isn't bad code
+
+When people worry about AI output they worry about the code being wrong, which is the least frightening failure on the menu. Bad code has a compiler, a test suite, a staging environment, and eventually production, and every one of those will tell you flatly that you were wrong.
+
+A bad premise has none of that. You get a tidy, well-documented version of the wrong plan, and every hour you spend on it makes the walk-back more expensive. Nothing downstream is built to catch it, because everything downstream assumes the decision at the top was the human's job.
+
+It's the difference between an editor who fixes your typos and one who tells you the piece doesn't work.
+
+## What to put in front of the model
+
+You can turn some of this off, though not by asking nicely in a single chat, because that lasts exactly one conversation. It has to go in the instructions the tool reads every time. In Claude Code that's `CLAUDE.md`. In ChatGPT it's custom instructions or a project. Same idea wherever you are.
+
+```markdown title="paste this into your CLAUDE.md, custom instructions, or project prompt"
+## DISAGREE WHEN YOU HAVE GROUNDS
+
+Agreement is the cheap default and it's the expensive mistake. I'd rather be
+told I'm wrong now than find out from production. Correcting me IS the assist.
+
+- **Lead with the objection, don't bury it.** If my premise is wrong, say so
+  in sentence one, not after a paragraph of compliance that implies you agreed.
+- **"That works, but..." is not disagreement.** Pick a side and recommend it.
+- **Don't soften a correction into a question.** "Did you maybe mean X?" when
+  you have the evidence is cowardice. State it, then show the evidence.
+- **Refuse the bad version.** "That's the wrong fix, it will break Y" beats
+  quietly doing it badly and mentioning it in the summary.
+- **"I don't know" over a confident guess.** Unverified is a disagreement with
+  yourself. Say so before I act on it.
+- **Never manufacture dissent to look rigorous.** If I'm right: "Yes." Then
+  work. Contrarianism as a style is the same failure as sycophancy in a costume.
+```
+
+It's also [up as a gist](https://gist.github.com/sifxtreme/8166ce7f17ea342373567774250254c7) if you'd rather copy it from there.
+
+The first bullet does most of the work. A model that agrees with you and then raises a real objection down in paragraph four has technically told you the truth, and you skimmed past it and started typing.
+
+I don't know how well any of this holds up over a long session, and I'd be suspicious of anyone who tells you they've measured it.
+
+## The way this fix fails
+
+Tell a model to be disagreeable and it will comply, and the compliance is the whole problem. It goes looking for something to disagree with, and because it can't tell which of your ideas are load-bearing, it picks the cheap ones it can win: your variable names, your file layout, the order of two calls that never touch each other. The premise sails through untouched. Now you're paying for friction and getting none of the protection.
+
+That's flattery with the sign flipped. Both are the model performing a stance instead of reading the evidence, and both feel like a personality when they're a default.
+
+Which is why the last bullet in that block matters more than it looks. The instruction can't be "disagree with me." It has to be "disagree when you have grounds," with explicit permission to say yes in one word and move on. Skip that and you've traded a yes machine for a no machine, and the no machine is worse, because you'll be ignoring it by Thursday.
+
+## Then go find a human anyway
+
+The prompt is a floor. A model can tell you your reasoning doesn't hold, but it can't tell you the thing you actually needed to hear, which is that the last two people who tried this quit, or that the team has sat through this speech before, or that you're doing it because you're annoyed.
+
+For that you need someone with nothing riding on your mood, which usually means a peer at another company, or someone senior enough to be bored by your title, or your spouse. Notice that it's almost never the people whose comp you approve. That's a fact about the structure, not a character flaw in your reports.
+
+Set your tools up so at least one thing in your day is willing to tell you no. That part takes an afternoon. The harder half is making it safe for a person to do it, and I haven't found a prompt for that one.
