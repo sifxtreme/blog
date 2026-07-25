@@ -15,7 +15,8 @@ const MAP: Record<AIUsage, { icon: string; label: string; detail: string }> = {
 	handwritten: {
 		icon: '✍️',
 		label: 'Written by hand',
-		detail: 'No AI. Every word here is mine.',
+		detail:
+			'No AI in the writing. Every word of the post is mine. If a footer or a build receipt below it was generated, it says so.',
 	},
 	dictated: {
 		icon: '🎙️',
@@ -33,7 +34,7 @@ const MAP: Record<AIUsage, { icon: string; label: string; detail: string }> = {
 		icon: '🦾',
 		label: 'Written by AI',
 		detail:
-			'AI wrote this one end to end. I gave it the goal and the numbers, gave it a light pass, and hit publish. The words are the model\'s, not mine.',
+			'AI wrote this one end to end from my notes. The words are the model\'s, not mine. Whether I touched it afterward is spelled out in the post\'s footer.',
 	},
 };
 
