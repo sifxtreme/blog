@@ -1,5 +1,5 @@
 ---
-import { SITE_TITLE } from '../consts';
+import { SITE_TITLE, CAL_URL } from '../consts';
 import HeaderLink from './HeaderLink.astro';
 
 const SOCIALS = {
@@ -16,6 +16,9 @@ const SOCIALS = {
 			<HeaderLink href="/">Home</HeaderLink>
 			<HeaderLink href="/blog">Writing</HeaderLink>
 			<HeaderLink href="/about">About</HeaderLink>
+			<a class="cta" href={CAL_URL} target="_blank" rel="noopener">
+				<span class="cta-long">Book 15 min</span><span class="cta-short">Book</span>
+			</a>
 		</div>
 		<div class="social-links">
 			<a href={SOCIALS.twitter} target="_blank" rel="me noopener">
@@ -99,6 +102,19 @@ const SOCIALS = {
 		border-bottom-color: var(--accent);
 		color: rgb(var(--black));
 	}
+	.internal-links a.cta {
+		padding: 1em 0.6em;
+		font-size: 0.95rem;
+		color: var(--accent);
+		font-weight: 600;
+		white-space: nowrap;
+	}
+	.internal-links a.cta:hover {
+		text-decoration: underline;
+	}
+	.internal-links a.cta .cta-short {
+		display: none;
+	}
 	.social-links {
 		display: flex;
 		gap: 0.3em;
@@ -140,8 +156,31 @@ const SOCIALS = {
 		.site-title {
 			font-size: 0.95rem;
 			padding: 0.6em 0.35em;
+			white-space: nowrap;
+		}
+		.internal-links {
+			gap: 0;
+		}
+		/* The site title is already the home link, so "Home" is the cheapest
+		   thing to drop to make room for the booking CTA on narrow screens. */
+		.internal-links :global(a[href='/']) {
+			display: none;
+		}
+	}
+	/* Below ~380px the full CTA label pushes the theme toggle off-screen and the
+	   page scrolls sideways. Shorten the label rather than let that happen. */
+	@media (max-width: 380px) {
+		.internal-links a.cta .cta-long {
+			display: none;
+		}
+		.internal-links a.cta .cta-short {
+			display: inline;
 		}
 		.internal-links :global(a) {
+			padding: 0.7em 0.45em;
+			font-size: 0.9rem;
+		}
+		.internal-links a.cta {
 			padding: 0.7em 0.45em;
 			font-size: 0.9rem;
 		}

@@ -1,0 +1,49 @@
+---
+title: 'I was wrong about when school starts'
+description: "I handed Claude two school PDFs and asked it to put the first day, the last day, and the drop-off runs on our calendar. It corrected my start date before it wrote anything, and then merging the two calendars told me something neither one said on its own."
+pubDate: '2026-07-25'
+tags: ['claude', 'calendar', 'files-are-king']
+aiUsage: 'assisted'
+---
+
+Three kids, two schools, and I had the first day wrong by more than a week.
+
+I was going off memory, and memory said school starts the Tuesday after Labor Day. So I gave Claude the PDF of the school calendar and asked it to save the first day, the last day, and the drop-off and pickup blocks onto my calendar and my wife's.
+
+It came back with a correction before it created anything. The first day of classes is August 31. September 7 is Labor Day, which is the first day OFF, not the first day on. I would have started the whole summer wind-down eight days late, and the way you normally find out about that is at 7:30 on a Monday morning.
+
+That's the part worth the post. Not the automation. The calendar was a picture of a color grid and I never actually read it, I just remembered a rule that was wrong.
+
+## The second school showed up mid-task
+
+While it was working, my wife forwarded an email from our youngest's school with four PDFs attached. Different school, different calendar, and his first day is twelve days earlier than his brothers'. I would have gotten that one wrong too, in the other direction.
+
+So now there were two calendars, and that turned out to be the interesting part.
+
+## Removing the holidays is where two calendars beat one
+
+A recurring weekday event doesn't know about school holidays, so by default you block 7:30 to 8:30 on Christmas. Google won't fix that for you.
+
+Both calendars were already saved as files at this point, so the fix was mechanical: expand each school's no-school days into a set, walk the occurrences, delete the ones that land on a closed day. 132 of them came off. [The script is here](https://gist.github.com/sifxtreme/46fd84a91e5f2ca63521349be2572d66) if you want to steal it, and the one detail worth knowing is that you delete by OCCURRENCE id, not series id. Google exposes occurrences as `<base-id>_<instant>`, and passing the bare base id deletes the entire series.
+
+Then the merged view said something I did not know.
+
+Across the school year there are 47 weekdays where somebody is off. Only 19 of them are days where BOTH schools are closed. The other 28 are days where one kid is home and the other still needs the 7:30 run, which means 28 mornings that look like a day off on a wall calendar and are not one.
+
+And the two spring breaks don't overlap at all. One school is out March 4 through 12. The other is out April 12 through 16. Five weeks apart. Any trip we take means pulling a kid out of school, and I'd rather know that in July than in February.
+
+Neither PDF could tell me that. Each one only knows its own school. The thing I actually wanted was in the gap between them.
+
+## The mistake I made
+
+I batched the calendar writes through a shell loop and used a conditional expansion for the optional end-date flag. It collapsed `--end-date 2026-11-27` into a single argument, so the four multi-day events, Thanksgiving and winter break and the February week and spring break, all failed. The single-day ones went through fine.
+
+The failures scrolled past inside a loop that kept going. If I'd trusted the "done" at the bottom, four of the most important blocks would have been missing and I'd have found out on Thanksgiving.
+
+I only caught it because I read the calendar back afterward and counted. That's the habit that saves you every time: the tool's success message is a claim, and the state is the fact. Go look at the state.
+
+## If you want to do this yourself
+
+You need three things and none of them are clever. Get the actual calendar file instead of working from memory. Have the agent read it back to you before it writes anything, because the correction is worth more than the automation. Then check the result yourself, because a loop that prints "done" has told you nothing about what's on your calendar.
+
+The recurring blocks are convenient. The 132 deleted occurrences are convenient. But the reason I'll do it again next August is that I asked a small question about dates and got told about 28 mornings I hadn't planned for.

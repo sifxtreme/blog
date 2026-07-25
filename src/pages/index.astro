@@ -6,7 +6,7 @@ import BaseHead from '../components/BaseHead.astro';
 import Footer from '../components/Footer.astro';
 import FormattedDate from '../components/FormattedDate.astro';
 import Header from '../components/Header.astro';
-import { SITE_DESCRIPTION, SITE_TITLE } from '../consts';
+import { CAL_URL, SITE_DESCRIPTION, SITE_TITLE } from '../consts';
 
 const posts = (await getCollection('blog')).sort(
 	(a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf(),
@@ -34,6 +34,10 @@ const posts = (await getCollection('blog')).sort(
 					<h1>{SITE_TITLE}</h1>
 					<!-- TODO(asif): rewrite this in your own voice. Keep it short. -->
 					<p>{SITE_DESCRIPTION}</p>
+					<p class="cta-line">
+						<a href={CAL_URL} target="_blank" rel="noopener">Book 15 minutes with me</a> to
+						talk tech or philosophy or leadership.
+					</p>
 				</div>
 			</section>
 
@@ -95,6 +99,14 @@ const posts = (await getCollection('blog')).sort(
 				align-items: flex-start;
 				text-align: left;
 			}
+		}
+		.intro .cta-line {
+			margin-top: 0.6em;
+			font-size: 0.95rem;
+		}
+		.intro .cta-line a {
+			color: var(--accent);
+			font-weight: 600;
 		}
 		.intro p {
 			color: rgb(var(--gray));
