@@ -188,6 +188,14 @@ const SOCIALS = {
 </style>
 <script is:inline>
 	document
+		.querySelector('.cta')
+		?.addEventListener('click', function () {
+			window.posthog?.capture('booking_cta_clicked', {
+				placement: 'header',
+			});
+		});
+
+	document
 		.getElementById('theme-toggle')
 		?.addEventListener('click', function () {
 			var el = document.documentElement;

@@ -17,6 +17,11 @@ pnpm-debug.log*
 .env
 .env.production
 
+# local-only credentials, colocated with the tooling that reads them.
+# Named *.local.json rather than .env so agent tooling can still read them
+# (a blanket .env deny rule made the credential unreadable in place).
+*.local.json
+
 # macOS-specific files
 .DS_Store
 

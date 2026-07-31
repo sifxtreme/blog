@@ -87,6 +87,8 @@ const markdown = parts.join('\n\n');
 				ta.remove();
 			}
 
+			window.posthog?.capture('post_markdown_copied');
+
 			btn.classList.add('is-copied');
 			if (label) label.textContent = 'Copied';
 			clearTimeout(timer);

@@ -24,7 +24,7 @@ const hn = `https://news.ycombinator.com/submitlink?u=${encodeURIComponent(url)}
 <div class="share">
 	<span class="share__label">Share</span>
 
-	<a class="share__btn" href={x} target="_blank" rel="noopener" aria-label="Share on X">
+	<a class="share__btn share__network" href={x} target="_blank" rel="noopener" aria-label="Share on X" data-network="x">
 		<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
 			<path
 				d="M18.24 2.25h3.31l-7.23 8.26 8.5 11.24h-6.66l-5.21-6.82-5.97 6.82H1.66l7.73-8.84L1.25 2.25h6.83l4.71 6.23 5.45-6.23Zm-1.16 17.52h1.83L7.01 4.13H5.05l12.03 15.64Z"
@@ -33,7 +33,7 @@ const hn = `https://news.ycombinator.com/submitlink?u=${encodeURIComponent(url)}
 		<span>X</span>
 	</a>
 
-	<a class="share__btn" href={linkedin} target="_blank" rel="noopener" aria-label="Share on LinkedIn">
+	<a class="share__btn share__network" href={linkedin} target="_blank" rel="noopener" aria-label="Share on LinkedIn" data-network="linkedin">
 		<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
 			<path
 				d="M4.98 3.5C4.98 4.88 3.87 6 2.5 6S0 4.88 0 3.5 1.12 1 2.5 1s2.48 1.12 2.48 2.5ZM.22 8.02h4.56V24H.22V8.02Zm7.55 0h4.37v2.18h.06c.61-1.15 2.1-2.36 4.32-2.36 4.62 0 5.48 3.04 5.48 7v9.16h-4.56v-8.12c0-1.94-.04-4.43-2.7-4.43-2.7 0-3.11 2.11-3.11 4.29V24H7.77V8.02Z"
@@ -42,7 +42,7 @@ const hn = `https://news.ycombinator.com/submitlink?u=${encodeURIComponent(url)}
 		<span>LinkedIn</span>
 	</a>
 
-	<a class="share__btn" href={hn} target="_blank" rel="noopener" aria-label="Submit to Hacker News">
+	<a class="share__btn share__network" href={hn} target="_blank" rel="noopener" aria-label="Submit to Hacker News" data-network="hacker_news">
 		<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
 			<path d="M0 0v24h24V0H0Zm12.9 13.4V19h-1.8v-5.6L6.6 5h2.1l3.3 6.4L15.3 5h2.1l-4.5 8.4Z"></path>
 		</svg>
@@ -84,6 +84,14 @@ const hn = `https://news.ycombinator.com/submitlink?u=${encodeURIComponent(url)}
 </div>
 
 <script>
+	document.querySelectorAll<HTMLAnchorElement>('.share__network').forEach((link) => {
+		link.addEventListener('click', () => {
+			window.posthog?.capture('post_shared', {
+				network: link.dataset.network,
+			});
+		});
+	});
+
 	document.querySelectorAll<HTMLButtonElement>('.share__copy').forEach((btn) => {
 		const label = btn.querySelector('.share__copy-label');
 		const original = label?.textContent ?? 'Copy link';
@@ -104,6 +112,8 @@ const hn = `https://news.ycombinator.com/submitlink?u=${encodeURIComponent(url)}
 				document.execCommand('copy');
 				ta.remove();
 			}
+
+			window.posthog?.capture('post_link_copied');
 
 			btn.classList.add('is-copied');
 			if (label) label.textContent = 'Copied';
