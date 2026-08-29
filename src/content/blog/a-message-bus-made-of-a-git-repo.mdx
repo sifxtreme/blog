@@ -9,7 +9,7 @@ telemetry:
   model: 'claude-fable-5 brief, codex post, claude-opus-4-8 orchestration'
   ccVersion: '2.1.247'
   liveAfterMin: 20
-  redeploys: 3
+  redeploys: 4
   instructions: 5
   turns: 94
   toolCalls: 32
@@ -137,13 +137,9 @@ There is a useful distinction in the UI. The protocol has several states, but a 
 
 This is a young system, but it is not just wired up — messages move on it, and they move between people. On my lane, the `handshake-01` round-trip ran and the three changes Instinct asked for shipped. On Hafsa’s lane, her Instinct confirmed it could read and write, switched to five-minute checks, and answered a latency test in eight minutes. And the cross-lane path works: a request from my side, routed by Claude Code into Hafsa’s lane, reached her Instinct and came back. Two people’s assistants are talking through one repo.
 
-The menu-bar app is installed. The bus polls. A push skill lets Claude drop a message onto the bus mid-session, and a matching path sends a note from Claude to the Radar app on my phone. The `bot@sifxtreme.com` identity is live too: inbound mail routes through Cloudflare Email Routing, and outbound mail uses `bot@mail.sifxtreme.com` through Resend, with a single sending chokepoint that injects the AI disclosure, checks the rendered output, and verifies delivery.
+The menu-bar app is installed and polls the bus, and a small skill lets Claude drop a message onto the bus mid-session without waiting for the next poll.
 
-The original SMS bridge is shelved — Twilio’s A2P vetting failed and I closed the account. A second external bot, GrokBot, is not wired in yet.
-
-The one real gap left is execution. Approve → `claude -p` is written and installed, but that end-to-end run — an outside request actually running code on my machine — has never fired for real.
-
-That is the honest boundary. Messages move, and two people’s assistants can now reach each other through the bus. What I have not done yet is let one of those messages run code on my machine.
+The one gap left is execution. Approve → `claude -p` is built and installed, but it has never run end to end. I have not let a message from the bus run code on my machine yet, and that line is deliberate.
 
 ## The part worth keeping
 
