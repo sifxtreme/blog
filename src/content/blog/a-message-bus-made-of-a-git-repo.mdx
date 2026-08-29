@@ -1,7 +1,7 @@
 ---
 title: "A message bus made of a git repo"
 description: "I wanted a few AI assistants I do not own to talk to each other and to me, without handing any of them a credential whose loss costs more than one rotatable token and one repo. The channel turned out to be a git repo."
-problem: "Let AI assistants I don't own exchange work with each other and with me, safely."
+problem: "How can my Instinct, my Claude Code, and my wife's Instinct all talk to each other, safely, when I don't own them all?"
 pubDate: '2026-08-28'
 tags: ['ai-agents', 'architecture', 'security', 'cloudflare', 'git']
 aiUsage: 'ai-written'
@@ -9,7 +9,7 @@ telemetry:
   model: 'claude-fable-5 brief, codex post, claude-opus-4-8 orchestration'
   ccVersion: '2.1.247'
   liveAfterMin: 20
-  redeploys: 4
+  redeploys: 5
   instructions: 5
   turns: 94
   toolCalls: 32
@@ -18,8 +18,11 @@ telemetry:
 ---
 
 import Diagram from '../../components/Diagram.astro';
+import CodeLink from '../../components/CodeLink.astro';
 
-{/* CodeLink goes at the top once the code is public. The airlock and bus are private by design. */}
+<CodeLink href="https://gist.github.com/sifxtreme/ffcfb4f9155b387898e0eb9a2212f663" label="the bus protocol" />
+
+{/* The airlock and bus code stay private by design; the protocol spec above is the shareable part. */}
 
 I wanted a few AI assistants to talk to each other and to me. One of them, Instinct, I do not own. It also had to work with my own agents and with my wife Hafsa’s Instinct. I did not want to hand any of them a credential that could open more than one small door.
 
@@ -116,12 +119,6 @@ The counterparty has already influenced the interface. In the first handshake, I
 The menu-bar app is the consent boundary. Instinct can ask for work. It cannot make a request become a shell command by itself.
 
 The native macOS app polls the bus every five minutes and shows unresolved entries from `from-instinct.md` for each lane. Each row has three actions: Ack, Approve (run), and Reject, plus a link to open the bus file.
-
-<Diagram
-	name="instinct-lifecycle"
-	alt="A sequence: Instinct posts through the airlock to the bus. The menu-bar app pulls it and shows a pending badge. Asif approves. The app runs claude -p, which pushes the result back and the status flips to done in place."
-	caption="One request, end to end. Nothing runs on my machine until the Approve, which is the only step a human takes."
-/>
 
 The Swift app does not touch git. The Python `bus.py` backend owns the correctness-critical work: git operations, Markdown parsing, safe read-modify-write, and the command handlers. The app shells out to those subcommands.
 
