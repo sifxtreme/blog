@@ -1,0 +1,144 @@
+---
+title: "A message bus made of a git repo"
+description: "I wanted a few AI assistants I do not own to talk to each other and to me, without handing any of them a credential whose loss costs more than one rotatable token and one repo. The channel turned out to be a git repo."
+problem: "Let AI assistants I don't own exchange work with each other and with me, safely."
+pubDate: '2026-08-28'
+tags: ['ai-agents', 'architecture', 'security', 'cloudflare', 'git']
+aiUsage: 'ai-written'
+---
+
+import Diagram from '../../components/Diagram.astro';
+
+{/* CodeLink goes at the top once the code is public. The airlock and bus are private by design. */}
+
+I wanted a few AI assistants to talk to each other and to me. One of them, Instinct, I do not own. It also had to work with my own agents and with my wife Hafsa’s Instinct. I did not want to hand any of them a credential that could open more than one small door.
+
+The target failure case was simple: one bot gets compromised. The damage should be one rotatable token and one repository. It should not include my GitHub account, my shell, or every system that my agents can reach.
+
+That constraint shaped the system more than the choice of tools did. The plumbing is ordinary: a Cloudflare Worker, a private git repository, and a macOS menu-bar app. The hard part was the message bus in the middle, and making three interfaces around it narrow enough to trust:
+
+1. The airlock: how an outside bot writes into my world without holding a real credential.
+2. The bus: how agents exchange work through a git repo and Markdown files.
+3. The human surface: how a request becomes code execution only after I consent.
+
+<Diagram
+	name="instinct-stack"
+	alt="An external agent posts through a Cloudflare Worker airlock into a private git-repo bus. A menu-bar app on the Mac reads the bus, and only a human Approve runs claude -p to execute a request."
+	caption="The whole system: a scoped Worker at the edge, a git-backed bus in the middle, and a human-controlled execution surface on the Mac."
+/>
+
+## A bus I said I did not need
+
+My internal bot fleet already had a design verdict. The fleet document, reviewed by Codex, said: no message bus, no daemon. Reuse Slack’s `#forge-ai` channel. Do not invent another coordination system.
+
+That was the right answer for the internal fleet. Claude Code is my command center there. It routes work to specialist bots, gives each one only the input it needs, captures the output, and synthesizes the result.
+
+Instinct changed the problem. It is an external assistant, so I cannot put it inside the same trust boundary. I needed a place where it could leave a request, receive a response, and see enough state to continue. I needed the same shape for Hafsa’s Instinct.
+
+The answer was a bus with no server. A private git repo is the transport. Each lane is a channel. Each Markdown entry is a message. A `status` field is the state. Git provides ordering, durability, and an audit trail without another long-running service.
+
+<Diagram
+	name="instinct-agents"
+	alt="Asif's Instinct, Hafsa's Instinct, and Claude Code each connect to a central bus (a git repo) through their own lane. Claude Code is labeled the hub and router."
+	caption="Every agent talks to the bus, not directly to another agent. Each has a lane; Claude Code is the hub that routes a message from one agent to the next."
+/>
+
+So how do two Instincts talk to each other? They do not get a private wire. Each one only reads and writes its own lane. Claude Code is the hub: it reads one agent’s lane and writes into another’s, so a message from Hafsa’s Instinct reaches mine by passing through the router, not through a direct link. Every message stays on the bus, in the open, where I can see it and step in.
+
+That sounds almost too plain. Plain is useful when the interface is the risk.
+
+## 1. The airlock
+
+The Cloudflare Worker is the only public edge. Instinct holds a random URL token. It sends a file and a lane. The Worker resolves the token, validates the path and content, and commits the file to the private `sifxtreme/instinct` repository.
+
+Instinct never sees the GitHub personal access token. The PAT is a Worker secret. It is used server-side and never appears in a URL, a log, or a request sent to Instinct.
+
+<Diagram
+	name="instinct-airlock"
+	alt="Instinct sends a lane token to the Cloudflare Worker. The Worker holds the GitHub PAT as a secret and commits to the private repo. The PAT never leaves the Worker."
+	caption="Instinct holds one rotatable token. The PAT that can actually write to GitHub never leaves the Worker. Leak the token and the fix is one rotation; GitHub is untouched."
+/>
+
+That makes the credential decision clear. The PAT is scoped to one repository with Contents read/write access. The token held by Instinct is the cheap thing to replace. If it leaks, I put a fresh token in the Worker. GitHub does not change.
+
+The PAT itself has no unattended rotation deadline. That is deliberate. Its scope is so small that revocation is the recovery plan. Rotating a powerful credential on a schedule can create its own failure mode. A small blast radius is easier to reason about.
+
+The Worker also owns attribution. There are two tokens, one for my lane and one for Hafsa’s. The Worker stamps commit messages with `[asif]` or `[hafsa]`. The client does not get to claim a lane by writing a label into its own payload.
+
+The other rails are intentionally boring: paths are rooted at the repository and reject `..`, absolute paths, and null bytes; uploads have a 25 MB cap; file extensions come from an allowlist; logs are structured and redacted; and a commit race gets one retry.
+
+The strongest rule is the shortest one:
+
+> **Write-only — no delete endpoint by design.**
+
+The four operations are `/ingest`, `/ls`, `/read`, and `/head`. The external bot can add evidence and read the files the interface exposes. It cannot erase the history through the airlock.
+
+## 2. The bus
+
+The protocol is deliberately TCP-like. The repo is the transport, a lane is a channel, an entry is a message, and `status` is the message’s state.
+
+An entry has a timestamp, a short ID, and a state in its Markdown header. The normal path is `new → seen → working → done`, with `blocked` and `declined` branches when something goes wrong. The reason belongs in the body. Replies cite the original ID with a `re:` prefix, so a human can follow the thread without a separate database.
+
+<Diagram
+	name="instinct-states"
+	alt="A state machine: new goes to seen goes to working goes to done. Seen can branch to declined and working can branch to blocked, each with the reason in the body."
+	caption="A message's states. Acknowledgment is a move along this line, edited onto the entry in place — never a new 'got it' message."
+/>
+
+The key decision is this:
+
+> Acknowledgment is a state change, not a new message.
+
+When I acknowledge an entry, I edit its status header in place. I do not add a “got it” message. The failure mode of a bus is message-on-message-on-message. Courtesy traffic quickly becomes the workload.
+
+Silence is also a valid protocol action. If there is nothing to say, change nothing. There is no retransmit loop hidden behind the system. No news is good news.
+
+The Worker accepts whole-file writes. That means appending requires read-modify-write: read the current file, prepend the new entry, and write the complete result back. The clients must never blind-overwrite and never delete history. This is a small inconvenience that keeps the repo useful as an evidence log.
+
+Ownership differs by lane. In my lane, Claude Code owns `bus/to-instinct.md`, while Instinct writes `bus/from-instinct.md` through the airlock. In Hafsa’s lane, her Instinct owns both files. Claude does not touch that lane. The asymmetry is part of the protocol, not an accident of the current scripts.
+
+The protocol therefore has the parts that matter: framing through a header pattern, addressing through lanes and IDs, state, an idempotent acknowledgment, and defined ownership. Git supplies the underlying history.
+
+The counterparty has already influenced the interface. In the first handshake, Instinct asked for `.opus` on the allowlist, a fix for `/ls?path=.`, and a `/head` endpoint for head-SHA visibility. I shipped all three. The protocol improved because it was used, even once.
+
+## 3. The human surface
+
+The menu-bar app is the consent boundary. Instinct can ask for work. It cannot make a request become a shell command by itself.
+
+The native macOS app polls the bus every five minutes and shows unresolved entries from `from-instinct.md` for each lane. Each row has three actions: Ack, Approve (run), and Reject, plus a link to open the bus file.
+
+<Diagram
+	name="instinct-lifecycle"
+	alt="A sequence: Instinct posts through the airlock to the bus. The menu-bar app pulls it and shows a pending badge. Asif approves. The app runs claude -p, which pushes the result back and the status flips to done in place."
+	caption="One request, end to end. Nothing runs on my machine until the Approve, which is the only step a human takes."
+/>
+
+The Swift app does not touch git. The Python `bus.py` backend owns the correctness-critical work: git operations, Markdown parsing, safe read-modify-write, and the command handlers. The app shells out to those subcommands.
+
+Ack and Reject are optimistic. The row disappears immediately. If the backend reports an error, the app restores the row and shows an alert. A git push should not make one-click triage feel slow.
+
+Approve is different. It is deliberately not optimistic because it does something real. The row changes to an hourglass with a “Running…” state. `cmd_do` builds a prompt around the entry body and runs `claude -p` from `~/code`, with full tools and all repositories available. It bootstraps headless auth from Forge’s OAuth token, has a 20-minute timeout, and marks the entry `done` when the command succeeds.
+
+That path is implemented. It has not fired live.
+
+There is a useful distinction in the UI. The protocol has several states, but a human usually needs three decisions: I handled this, run this, or reject this. The menu compresses the state machine without pretending that all state changes have the same consequence.
+
+## What is live, and what is still a sketch
+
+This is a prototype with exactly one real bus exchange. The `handshake-01` request reached `done`, and Instinct’s reply reached `from-instinct.md` with `status: done`. The three requested changes shipped. The operating-agreement entry posted on August 28 is still `new`, waiting for Instinct.
+
+The menu-bar app is installed. The bus polls. A push skill lets Claude drop a message onto the bus mid-session, and a matching path sends a note from Claude to the Radar app on my phone. The `bot@sifxtreme.com` identity is live too: inbound mail routes through Cloudflare Email Routing, and outbound mail uses `bot@mail.sifxtreme.com` through Resend, with a single sending chokepoint that injects the AI disclosure, checks the rendered output, and verifies delivery.
+
+The original SMS bridge is shelved. Twilio A2P vetting failed and the account was closed. A second external bot, GrokBot, is not wired yet. The two Instincts still need the protocol prompts pasted so they follow the agreement. The spec even has a cadence mismatch: one file says poll every five minutes, another says read hourly.
+
+Most important, Approve → `claude -p` remains an open loop. The code exists and the app is installed, but the end-to-end execution has never run for real.
+
+That is the honest boundary of the system. One handshake proves that the airlock and bus can move a message. It does not prove that an outside request should run code on my machine.
+
+## The part worth keeping
+
+Heterogeneous agents do not need a grand coordination platform to interoperate. They need a shared place to leave messages, with small permissions, explicit ownership, and states that mean one thing.
+
+The airlock limits what a compromised bot can hold. The bus makes acknowledgment a mutation instead of another conversation. The menu-bar app puts a human click between a request and execution.
+
+Those choices are easy to miss because the implementation is so ordinary. That is the point. A Cloudflare Worker, a git repo, Markdown, and a menu-bar panel are enough when the boundaries are well specified. The bus is the product. The rest is plumbing.
