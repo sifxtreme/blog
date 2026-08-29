@@ -9,7 +9,7 @@ telemetry:
   model: 'claude-fable-5 brief, codex post, claude-opus-4-8 orchestration'
   ccVersion: '2.1.247'
   liveAfterMin: 20
-  redeploys: 2
+  redeploys: 3
   instructions: 5
   turns: 94
   toolCalls: 32
@@ -135,15 +135,15 @@ There is a useful distinction in the UI. The protocol has several states, but a 
 
 ## What is live, and what is still a sketch
 
-This is a prototype with exactly one real bus exchange. The `handshake-01` request reached `done`, and Instinct’s reply reached `from-instinct.md` with `status: done`. The three requested changes shipped. The operating-agreement entry posted on August 28 is still `new`, waiting for Instinct.
+This is a young system, but it is not just wired up — messages move on it, and they move between people. On my lane, the `handshake-01` round-trip ran and the three changes Instinct asked for shipped. On Hafsa’s lane, her Instinct confirmed it could read and write, switched to five-minute checks, and answered a latency test in eight minutes. And the cross-lane path works: a request from my side, routed by Claude Code into Hafsa’s lane, reached her Instinct and came back. Two people’s assistants are talking through one repo.
 
 The menu-bar app is installed. The bus polls. A push skill lets Claude drop a message onto the bus mid-session, and a matching path sends a note from Claude to the Radar app on my phone. The `bot@sifxtreme.com` identity is live too: inbound mail routes through Cloudflare Email Routing, and outbound mail uses `bot@mail.sifxtreme.com` through Resend, with a single sending chokepoint that injects the AI disclosure, checks the rendered output, and verifies delivery.
 
-The original SMS bridge is shelved. Twilio A2P vetting failed and the account was closed. A second external bot, GrokBot, is not wired yet. The two Instincts still need the protocol prompts pasted so they follow the agreement. The spec even has a cadence mismatch: one file says poll every five minutes, another says read hourly.
+The original SMS bridge is shelved — Twilio’s A2P vetting failed and I closed the account. A second external bot, GrokBot, is not wired in yet.
 
-Most important, Approve → `claude -p` remains an open loop. The code exists and the app is installed, but the end-to-end execution has never run for real.
+The one real gap left is execution. Approve → `claude -p` is written and installed, but that end-to-end run — an outside request actually running code on my machine — has never fired for real.
 
-That is the honest boundary of the system. One handshake proves that the airlock and bus can move a message. It does not prove that an outside request should run code on my machine.
+That is the honest boundary. Messages move, and two people’s assistants can now reach each other through the bus. What I have not done yet is let one of those messages run code on my machine.
 
 ## The part worth keeping
 
