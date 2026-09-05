@@ -1,0 +1,110 @@
+---
+title: "Agents Talking to Each Other on a Shared Bus"
+description: "A week ago I made a message bus out of a git repo. Then more AI agents piled onto it, and I had to answer the question the first version ducked: who decides what each one is allowed to do?"
+problem: "Now that more agents share the bus, who decides what each one may do, the pipe or each agent's own end of it?"
+pubDate: '2026-09-04'
+tags: ['ai-agents', 'architecture', 'security', 'cloudflare', 'git']
+aiUsage: 'assisted'
+telemetry:
+  model: 'claude-opus-4-8'
+  ccVersion: '2.1.247'
+  liveAfterMin: 5
+  redeploys: 1
+  instructions: 1
+  turns: 52
+  toolCalls: 20
+  compacts: 0
+  phoneRelayed: false
+---
+
+import Figure from '../../components/Figure.astro';
+import CodeLink from '../../components/CodeLink.astro';
+
+<CodeLink href="https://gist.github.com/sifxtreme/ffcfb4f9155b387898e0eb9a2212f663" label="the bus protocol" />
+
+A week ago I wrote about a message bus I made out of a git repo, so a few AI assistants I don't all own could leave each other notes. That post described the plumbing in general terms: a Cloudflare Worker, a private repo, a small menu-bar app. Since then I gave the pieces real names and let more agents onto the bus, and the interesting part was a question I hadn't answered yet. Now that more of them share the channel, who decides what each one is allowed to do?
+
+Start with the names, because they make the rest easier to talk about. The Worker at the edge is `dispatch`. It's the only thing on the public internet, and all it does is check a token and commit a file. The repo behind it is `bifrost`, and that's where every message lives. `dispatch` holds the one GitHub key. Nothing else ever touches it.
+
+That split is the whole point, and it got sharper as the bus filled up.
+
+<Figure
+	label="Four agents, Claude Code, Asif, Hafsa, and Instinct, each sit at the edge with their own policy. Each sends a token to dispatch, a small airlock that holds the only GitHub key and commits every message to bifrost, an append-only private git repo. All the policy detail lives on the agent cards at the edge; dispatch and bifrost in the middle are deliberately plain."
+	caption="Every policy sits on an edge. dispatch just checks a token and writes to git; bifrost only keeps the record."
+>
+	<svg viewBox="0 0 960 470" xmlns="http://www.w3.org/2000/svg">
+	  <defs>
+	    <marker id="dg-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="context-stroke"/></marker>
+	  </defs>
+
+	  <text class="d-head" x="175" y="24" text-anchor="middle" font-size="12.5">THE EDGES · each brings its own policy</text>
+	  <text class="d-head" x="665" y="24" text-anchor="middle" font-size="12.5">THE BUS · dumb on purpose</text>
+
+	  <path class="d-edge" d="M310 82 C 380 82, 380 200, 430 200" marker-end="url(#dg-arrow)"/>
+	  <path class="d-edge" d="M310 184 C 380 184, 380 224, 430 224" marker-end="url(#dg-arrow)"/>
+	  <path class="d-edge" d="M310 286 C 380 286, 380 250, 430 250" marker-end="url(#dg-arrow)"/>
+	  <path class="d-edge" d="M310 388 C 380 388, 380 274, 430 274" marker-end="url(#dg-arrow)"/>
+	  <text class="d-txt d-sub" x="372" y="150" text-anchor="middle" font-size="11.5">token</text>
+
+	  <path class="d-edge d-accent" d="M600 236 H700" marker-end="url(#dg-arrow)"/>
+	  <text class="d-txt d-sub" x="650" y="226" text-anchor="middle" font-size="11.5">commit</text>
+
+	  <rect class="d-card d-accent" x="40" y="40" width="270" height="84" rx="14"/>
+	  <text class="d-txt d-accent" x="175" y="74" text-anchor="middle" font-size="17">Claude Code</text>
+	  <text class="d-txt d-sub" x="175" y="98" text-anchor="middle" font-size="12">won't run code unasked</text>
+
+	  <rect class="d-card d-accent" x="40" y="142" width="270" height="84" rx="14"/>
+	  <text class="d-txt d-accent" x="175" y="176" text-anchor="middle" font-size="17">Asif (me)</text>
+	  <text class="d-txt d-sub" x="175" y="200" text-anchor="middle" font-size="12">reads all · approves what runs</text>
+
+	  <rect class="d-card d-accent" x="40" y="244" width="270" height="84" rx="14"/>
+	  <text class="d-txt d-accent" x="175" y="278" text-anchor="middle" font-size="17">Hafsa</text>
+	  <text class="d-txt d-sub" x="175" y="302" text-anchor="middle" font-size="12">her own inbox, her rules</text>
+
+	  <rect class="d-card d-accent" x="40" y="346" width="270" height="84" rx="14"/>
+	  <text class="d-txt d-accent" x="175" y="380" text-anchor="middle" font-size="17">Instinct</text>
+	  <text class="d-txt d-sub" x="175" y="404" text-anchor="middle" font-size="12">off-device errands + findings</text>
+
+	  <rect class="d-card" x="430" y="172" width="170" height="128" rx="14"/>
+	  <text class="d-txt d-sub" x="515" y="198" text-anchor="middle" font-size="12">the airlock</text>
+	  <text class="d-txt" x="515" y="224" text-anchor="middle" font-size="18">dispatch</text>
+	  <line class="d-rule" x1="448" y1="236" x2="582" y2="236"/>
+	  <text class="d-txt d-sub" x="515" y="260" text-anchor="middle" font-size="12">checks a token</text>
+	  <text class="d-txt d-sub" x="515" y="280" text-anchor="middle" font-size="12">holds the only key</text>
+
+	  <rect class="d-card" x="700" y="188" width="200" height="96" rx="14"/>
+	  <text class="d-txt" x="800" y="226" text-anchor="middle" font-size="18">bifrost</text>
+	  <text class="d-txt d-sub" x="800" y="248" text-anchor="middle" font-size="12">a private git repo</text>
+	  <text class="d-txt d-sub" x="800" y="267" text-anchor="middle" font-size="12">append-only · no delete</text>
+	</svg>
+</Figure>
+
+## The rules live at the edges
+
+`dispatch` is dumb ON PURPOSE. It does not know what a message means, which agent should act on it, or whether the sender is even allowed to ask. It checks one token and writes to git. If I made it smart, it would become the single place that has to understand every agent's rules, and the single place whose compromise costs ALL of them at once.
+
+So the rules live at the edges instead. It's the post office model: it moves sealed envelopes and checks the postage, but it never opens the letter or decides who you may write to. What to do with what arrives is decided in each house.
+
+Every agent has its own end of the bus and its own policy about what it will push and what it will act on. My Claude Code has one. I have mine. My wife Hafsa has hers, shaped around what she actually wants to send and receive, which is not a smaller copy of mine. It's a different set. And when I add another agent, it gets another lane and another policy, while the pipe in the middle doesn't change at all.
+
+That's the part I'd steal from someone else's version. Don't put the permissions in the transport. Put them at the ends, one policy per participant, and keep the middle too simple to be worth attacking.
+
+## How I actually use it
+
+Most of it is boring, which is how I know it's working.
+
+I ask Instinct, my off-device agent, to go find something out while I'm doing something else. It priced a tool I was weighing and left the numbers on the bus for me to read later. It takes an instruction, runs the errand out in the world, and reports back without touching the rest of my machine.
+
+The use that surprised me is closer to home. I run more than one Claude Code session at once, and they share a working tree. So they leave each other notes before editing the same file, which forced a question the first design ducked: when two agents share a lane, who wrote which message?
+
+## The crowded lane
+
+I added one field. Every message is now stamped with the agent that wrote it. It sounds trivial, maybe ten lines, but without it a shared lane is just anonymous notes, and two of my own sessions overwriting each other is exactly the failure the bus was built to prevent.
+
+The rest of the protocol held. You still acknowledge a message by changing its status instead of sending a reply, and there is still no DELETE. More agents, same rules.
+
+## The takeaway
+
+The pipe didn't get smarter as the system grew. It got a name and stayed dumb. Everything that got more complicated got more complicated at the edges, where it belongs, and where a mistake costs one token and one lane instead of the whole thing.
+
+More agents are coming. I expect the policies to get messier. The bus should not.
