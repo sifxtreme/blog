@@ -1,0 +1,202 @@
+[
+  {
+    "slug": "40-dollar-touchscreen-voice-assistant",
+    "aiUsage_declared": "ai-written",
+    "prose_words": 596,
+    "prediction": "AI",
+    "fraction_ai": 1,
+    "fraction_ai_assisted": 0,
+    "fraction_human": 0,
+    "error": null
+  },
+  {
+    "slug": "a-message-bus-made-of-a-git-repo",
+    "aiUsage_declared": "ai-written",
+    "prose_words": 647,
+    "prediction": "AI",
+    "fraction_ai": 1,
+    "fraction_ai_assisted": 0,
+    "fraction_human": 0,
+    "error": null
+  },
+  {
+    "slug": "a-month-in-one-claude-session",
+    "aiUsage_declared": "ai-written",
+    "prose_words": 1666,
+    "prediction": "AI",
+    "fraction_ai": 1,
+    "fraction_ai_assisted": 0,
+    "fraction_human": 0,
+    "error": null
+  },
+  {
+    "slug": "agents-on-a-shared-bus",
+    "aiUsage_declared": "assisted",
+    "prose_words": 675,
+    "prediction": "AI",
+    "fraction_ai": 1,
+    "fraction_ai_assisted": 0,
+    "fraction_human": 0,
+    "error": null
+  },
+  {
+    "slug": "always-free-claude-remote-session",
+    "aiUsage_declared": "assisted",
+    "prose_words": 589,
+    "prediction": "AI",
+    "fraction_ai": 1,
+    "fraction_ai_assisted": 0,
+    "fraction_human": 0,
+    "error": null
+  },
+  {
+    "slug": "fast-cheap-model-voice-assistant",
+    "aiUsage_declared": "ai-written",
+    "prose_words": 462,
+    "prediction": "AI",
+    "fraction_ai": 1,
+    "fraction_ai_assisted": 0,
+    "fraction_human": 0,
+    "error": null
+  },
+  {
+    "slug": "hello-sifxtreme",
+    "aiUsage_declared": "assisted",
+    "prose_words": 167,
+    "prediction": "AI",
+    "fraction_ai": 1,
+    "fraction_ai_assisted": 0,
+    "fraction_human": 0,
+    "error": null
+  },
+  {
+    "slug": "i-was-wrong-about-when-school-starts",
+    "aiUsage_declared": "assisted",
+    "prose_words": 743,
+    "prediction": "AI",
+    "fraction_ai": 1,
+    "fraction_ai_assisted": 0,
+    "fraction_human": 0,
+    "error": null
+  },
+  {
+    "slug": "imessage-whatsapp-and-the-ios-wall",
+    "aiUsage_declared": "ai-written",
+    "prose_words": 753,
+    "prediction": "AI",
+    "fraction_ai": 1,
+    "fraction_ai_assisted": 0,
+    "fraction_human": 0,
+    "error": null
+  },
+  {
+    "slug": "keep-your-claude-sessions",
+    "aiUsage_declared": "assisted",
+    "prose_words": 441,
+    "prediction": "AI",
+    "fraction_ai": 1,
+    "fraction_ai_assisted": 0,
+    "fraction_human": 0,
+    "error": null
+  },
+  {
+    "slug": "my-voice-assistant-on-my-phone",
+    "aiUsage_declared": "ai-written",
+    "prose_words": 627,
+    "prediction": "AI",
+    "fraction_ai": 1,
+    "fraction_ai_assisted": 0,
+    "fraction_human": 0,
+    "error": null
+  },
+  {
+    "slug": "search-your-claude-sessions",
+    "aiUsage_declared": "assisted",
+    "prose_words": 1398,
+    "prediction": "AI",
+    "fraction_ai": 1,
+    "fraction_ai_assisted": 0,
+    "fraction_human": 0,
+    "error": null
+  },
+  {
+    "slug": "silly-apps-for-a-40-dollar-screen",
+    "aiUsage_declared": "ai-written",
+    "prose_words": 809,
+    "prediction": "Mixed",
+    "fraction_ai": 0.5395,
+    "fraction_ai_assisted": 0,
+    "fraction_human": 0.4605,
+    "error": null
+  },
+  {
+    "slug": "something-that-disagrees-with-them",
+    "aiUsage_declared": "assisted",
+    "prose_words": 998,
+    "prediction": "AI",
+    "fraction_ai": 1,
+    "fraction_ai_assisted": 0,
+    "fraction_human": 0,
+    "error": null
+  },
+  {
+    "slug": "sum-of-the-parts-ai",
+    "aiUsage_declared": "ai-written",
+    "prose_words": 871,
+    "prediction": "AI",
+    "fraction_ai": 1,
+    "fraction_ai_assisted": 0,
+    "fraction_human": 0,
+    "error": null
+  },
+  {
+    "slug": "sum-of-the-parts-human",
+    "aiUsage_declared": "handwritten",
+    "prose_words": 238,
+    "prediction": "Human",
+    "fraction_ai": 0,
+    "fraction_ai_assisted": 0,
+    "fraction_human": 1,
+    "error": null
+  },
+  {
+    "slug": "the-cheaper-voice-is-the-one-i-use",
+    "aiUsage_declared": "assisted",
+    "prose_words": 631,
+    "prediction": "Mixed",
+    "fraction_ai": 0.1798,
+    "fraction_ai_assisted": 0,
+    "fraction_human": 0.8202,
+    "error": null
+  },
+  {
+    "slug": "the-settings-file-that-deleted-itself",
+    "aiUsage_declared": "assisted",
+    "prose_words": 1316,
+    "prediction": "AI",
+    "fraction_ai": 1,
+    "fraction_ai_assisted": 0,
+    "fraction_human": 0,
+    "error": null
+  },
+  {
+    "slug": "the-usage-number-was-already-there",
+    "aiUsage_declared": "assisted",
+    "prose_words": 1016,
+    "prediction": "AI",
+    "fraction_ai": 1,
+    "fraction_ai_assisted": 0,
+    "fraction_human": 0,
+    "error": null
+  },
+  {
+    "slug": "tradeoffs",
+    "aiUsage_declared": "handwritten",
+    "prose_words": 68,
+    "prediction": "Human",
+    "fraction_ai": 0,
+    "fraction_ai_assisted": 0,
+    "fraction_human": 1,
+    "error": null
+  }
+]

@@ -1,6 +1,7 @@
 ---
 title: 'An old Claude Code rejected my settings and deleted 2,055 sessions'
 description: 'I set cleanupPeriodDays to 365. A pinned, older Claude Code could not parse my settings file, threw the whole file away, and fell back to deleting after 30 days.'
+problem: "Prevent an old Claude binary from deleting sessions after rejecting settings."
 pubDate: '2026-07-13'
 tags: ['claude', 'files-are-king', 'postmortem']
 aiUsage: 'assisted'
@@ -14,9 +15,17 @@ telemetry:
   toolCalls: 35
   compacts: 0
   phoneRelayed: false
+pangram:
+  verdict: 'AI'
+  human: 0
+  assisted: 0
+  ai: 100
+  model: 'v3.3.2'
+  checkedOn: '2026-09-10'
 ---
 
 import CodeLink from '../../components/CodeLink.astro';
+import Figure from '../../components/Figure.astro';
 
 <CodeLink href="https://gist.github.com/sifxtreme/2ed884113aebab1acd6a268cd4ce7925" label="the repro gist" />
 
@@ -69,19 +78,31 @@ It runs at startup, seconds after the process spawns.
 
 And it says nothing. I checked, because it's the obvious objection: that loader returns an `errors` array, so maybe Claude Code warned me and my agent threw the warning away. It doesn't. Running the old build against my real settings file, with everything captured, it deleted a 200-day-old transcript and wrote **zero bytes to stderr**. Nothing in stdout mentioned settings, hooks, schema, or validation. The only thing it printed was an unrelated auth error.
 
-<figure style="margin:2rem 0;">
-	<a href="/diagrams/settings-parse-chain.light.svg" target="_blank" rel="noopener" style="display:block;cursor:zoom-in;">
-		<picture>
-			<source srcset="/diagrams/settings-parse-chain.dark.svg" media="(prefers-color-scheme: dark)" />
-			<img
-				src="/diagrams/settings-parse-chain.light.svg"
-				alt="Two lanes reading one settings file. My laptop, running a current Claude, reads the settings file, understands every key, and keeps sessions for 365 days. My agent, running an old Claude pinned inside its SDK, reads the same settings file, hits one key it has never heard of, throws away the whole file including the instruction to keep for 365 days, and falls back to its default of deleting after 30 days."
-				style="width:100%;height:auto;border:1px solid rgb(var(--border));border-radius:12px;"
-			/>
-		</picture>
-	</a>
-	<figcaption style="text-align:center;color:rgb(var(--gray));font-size:0.85em;margin-top:0.6rem;">Same file. Two readers. Only one of them throws it away. <a href="/diagrams/settings-parse-chain.light.svg" target="_blank" rel="noopener" style="color:inherit;">(click to enlarge)</a></figcaption>
-</figure>
+<Figure
+	label="Two lanes reading one settings file. My laptop, running a current Claude, understands every key and keeps sessions for 365 days. My agent, running an old Claude, hits a key it has never heard of, throws away the whole file, and falls back to deleting after 30 days."
+	caption="Same file. Two readers. Only one of them throws it away."
+>
+	<svg viewBox="0 0 776 208" xmlns="http://www.w3.org/2000/svg"><defs><marker id="dg-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="context-stroke"/></marker></defs>
+	  <path class="d-edge d-accent" d="M180 90 C230 72 244 62 268 60" marker-end="url(#dg-arrow)"/>
+	  <path class="d-edge d-accent" d="M474 58 L512 58" marker-end="url(#dg-arrow)"/>
+	  <path class="d-edge d-dash" d="M180 118 C230 136 244 146 268 148" marker-end="url(#dg-arrow)"/>
+	  <path class="d-edge d-dash" d="M474 148 L512 148" marker-end="url(#dg-arrow)"/>
+	  <rect class="d-card" x="24" y="76" width="156" height="58" rx="11"/>
+	  <text class="d-txt" x="102" y="101" text-anchor="middle" font-size="14">settings file</text>
+	  <text class="d-txt d-sub" x="102" y="120" text-anchor="middle" font-size="11.5">keep 365 days</text>
+	  <rect class="d-card d-accent" x="270" y="30" width="204" height="56" rx="11"/>
+	  <text class="d-txt d-accent" x="372" y="54" text-anchor="middle" font-size="14">laptop, current Claude</text>
+	  <text class="d-txt d-sub" x="372" y="72" text-anchor="middle" font-size="11.5">understands every key</text>
+	  <rect class="d-card d-accent" x="514" y="30" width="176" height="56" rx="11"/>
+	  <text class="d-txt d-accent" x="602" y="63" text-anchor="middle" font-size="14">keeps 365 days</text>
+	  <rect class="d-card d-dim" x="270" y="120" width="204" height="56" rx="11"/>
+	  <text class="d-txt" x="372" y="144" text-anchor="middle" font-size="14">agent, old Claude</text>
+	  <text class="d-txt d-sub" x="372" y="162" text-anchor="middle" font-size="11.5">hits a key it never heard of</text>
+	  <rect class="d-card d-dim" x="514" y="120" width="176" height="56" rx="11"/>
+	  <text class="d-txt" x="602" y="144" text-anchor="middle" font-size="13.5">throws the file away</text>
+	  <text class="d-txt d-sub" x="602" y="162" text-anchor="middle" font-size="11.5">deletes after 30 days</text>
+	</svg>
+</Figure>
 
 ## The reproduction
 

@@ -1,6 +1,7 @@
 ---
 title: 'The cheaper voice is the one I actually use'
 description: "The macOS system voice is rough, and paid text to speech is metered per character, so I run an 82M parameter model on my Mac instead. It turns a 2,000 word article into 15 minutes of speech in 37 seconds and costs nothing per word."
+problem: "Read long text aloud without a meter or the system voice."
 pubDate: '2026-07-31'
 tags: ['ai', 'macos', 'local-ai']
 aiUsage: 'assisted'
@@ -14,6 +15,13 @@ telemetry:
   toolCalls: 49
   compacts: 0
   phoneRelayed: false
+pangram:
+  verdict: 'Mixed'
+  human: 82
+  assisted: 0
+  ai: 18
+  model: 'v3.3.2'
+  checkedOn: '2026-09-10'
 ---
 
 import CodeLink from '../../components/CodeLink.astro';

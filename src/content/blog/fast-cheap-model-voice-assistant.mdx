@@ -1,0 +1,131 @@
+---
+title: "Picking a fast, cheap model for my voice assistant"
+description: "A voice assistant lives or dies on two numbers: how long you wait and what each question costs. So I picked a small, fast, cheap model, and built a harness that skips the model whenever it can."
+problem: "Keep voice answers fast and cheap by skipping unnecessary model calls."
+pubDate: '2026-08-22'
+tags: ['ai', 'local-ai', 'latency', 'cost']
+series:
+  name: 'Playing with hardware'
+  part: 2
+aiUsage: 'ai-written'
+telemetry:
+  model: 'claude-opus-4-8 draft, codex gpt-5.6-luna rewrite'
+  ccVersion: '2.1.238'
+  liveAfterMin: 8
+  redeploys: 0
+  instructions: 1
+  turns: 27
+  toolCalls: 9
+  compacts: 0
+  phoneRelayed: false
+pangram:
+  verdict: 'AI'
+  human: 0
+  assisted: 0
+  ai: 100
+  model: 'v3.3.2'
+  checkedOn: '2026-09-10'
+---
+
+import StatTable from '../../components/StatTable.astro';
+import Figure from '../../components/Figure.astro';
+import Video from '../../components/Video.astro';
+
+{/* CodeLink goes at the top once the code is public. */}
+
+The first version of my voice assistant took 25 seconds to answer what was on my calendar. I was standing there talking to a computer, waiting for the computer to think about a calendar. The answer was fine, but the wait was BROKEN.
+
+I had picked a reasoning model because I wanted the smart answer, and I hadn't admitted that a voice assistant is mostly a timing problem. Once I did, the project came down to two numbers, how long I wait and what each question costs. Smart was never the hard part. Fast and cheap were.
+
+## The model I settled on
+
+I tried Claude first because it was the sharpest and could hold a plan across several steps, but a plain call took anywhere from 5 to 50 seconds. That is fine in a chat window and wrong in a conversation. The local model cost nothing and kept my data on the Mac, but it fell apart when it had to call a tool and answered in confident nonsense.
+
+So I picked the small hosted model. It is less impressive on paper, but it answers a real question with tools quickly enough that I will actually use it. That was the decision, not which model wins a benchmark.
+
+## The shortcut that pays for itself
+
+<Figure
+	label="You say something. If it is trivial, like the time, the calendar, or a timer, it takes a fast path with no model and answers in about a second for free. If it is a real question, it goes to the small model with tools and answers in about four seconds for about a fifth of a cent."
+	caption="Two lanes: the trivial asks never touch the model."
+>
+	<svg viewBox="0 0 760 210" xmlns="http://www.w3.org/2000/svg"><defs><marker id="dg-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="context-stroke"/></marker></defs>
+	  <path class="d-edge d-accent" d="M204 92 C258 74 272 62 296 60" marker-end="url(#dg-arrow)"/>
+	  <text class="d-txt d-sub" x="252" y="48" text-anchor="middle" font-size="12.5">trivial: time, calendar, timer</text>
+	  <path class="d-edge" d="M204 118 C258 136 272 148 296 150" marker-end="url(#dg-arrow)"/>
+	  <text class="d-txt d-sub" x="252" y="178" text-anchor="middle" font-size="12.5">a real question</text>
+	  <path class="d-edge d-accent" d="M470 60 L536 60" marker-end="url(#dg-arrow)"/>
+	  <path class="d-edge" d="M470 150 L536 150" marker-end="url(#dg-arrow)"/>
+	  <rect class="d-card" x="24" y="76" width="180" height="58" rx="11"/>
+	  <text class="d-txt" x="114" y="102" text-anchor="middle" font-size="15">You say</text>
+	  <text class="d-txt" x="114" y="121" text-anchor="middle" font-size="15">something</text>
+	  <rect class="d-card d-accent" x="300" y="31" width="170" height="58" rx="11"/>
+	  <text class="d-txt d-accent" x="385" y="56" text-anchor="middle" font-size="15">Fast path</text>
+	  <text class="d-txt d-sub" x="385" y="75" text-anchor="middle" font-size="11.5">no model</text>
+	  <rect class="d-card d-accent" x="540" y="31" width="176" height="58" rx="11"/>
+	  <text class="d-txt d-accent" x="628" y="56" text-anchor="middle" font-size="15">about 1 second</text>
+	  <text class="d-txt d-sub" x="628" y="75" text-anchor="middle" font-size="11.5">free</text>
+	  <rect class="d-card" x="300" y="121" width="170" height="58" rx="11"/>
+	  <text class="d-txt" x="385" y="146" text-anchor="middle" font-size="15">Small model</text>
+	  <text class="d-txt d-sub" x="385" y="165" text-anchor="middle" font-size="11.5">plus tools</text>
+	  <rect class="d-card" x="540" y="121" width="176" height="58" rx="11"/>
+	  <text class="d-txt" x="628" y="146" text-anchor="middle" font-size="15">about 4 seconds</text>
+	  <text class="d-txt d-sub" x="628" y="165" text-anchor="middle" font-size="11.5">about $0.002</text>
+	</svg>
+</Figure>
+
+Then I looked at what I was actually asking. Most of it was the time, the next calendar event, or a timer for ten minutes, and none of that needed a model. Paying a model to read a clock is a taxi to the mailbox, so those requests now take a fast path that answers in about a second and costs nothing. The boring answer is also the useful one.
+
+<Video
+	src="/media/timer-fast-path.mp4"
+	poster="/media/timer-fast-path.jpg"
+	maxWidth="340px"
+	caption="The fast path, in the real thing: a timer set in about a second, no model, no cost."
+/>
+
+## Staying cheap as it runs
+
+Conversation history costs money too. Every turn sends the previous turns back to the model, so a long thread gets slower and more expensive as it grows. Once it passes a set size, I summarize the older turns down to a few sentences, which keeps the current question small enough to answer quickly.
+
+## Where the tools fit
+
+<Figure
+	label="The model connects to its tools: get_calendar wraps the calendar CLIs, search_email reads gmail read only, search_docs searches notes and files locally, a scheduler handles timers and reminders, and query_finances asks Jarvis, the money app."
+	caption="Each tool wraps something already on the Mac."
+>
+	<svg viewBox="0 0 780 288" xmlns="http://www.w3.org/2000/svg"><defs><marker id="dg-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="context-stroke"/></marker></defs>
+	  <path class="d-edge d-accent" d="M176 130 C280 96 300 42 386 36" marker-end="url(#dg-arrow)"/>
+	  <path class="d-edge d-accent" d="M176 138 C300 122 320 96 386 90" marker-end="url(#dg-arrow)"/>
+	  <path class="d-edge d-accent" d="M176 146 L386 144" marker-end="url(#dg-arrow)"/>
+	  <path class="d-edge d-accent" d="M176 154 C300 170 320 196 386 198" marker-end="url(#dg-arrow)"/>
+	  <path class="d-edge d-accent" d="M176 162 C280 196 300 250 386 252" marker-end="url(#dg-arrow)"/>
+	  <rect class="d-card d-accent" x="24" y="114" width="152" height="60" rx="12"/>
+	  <text class="d-txt d-accent" x="100" y="149" text-anchor="middle" font-size="15">Small model</text>
+	  <rect class="d-card" x="388" y="14" width="368" height="44" rx="10"/>
+	  <text class="d-txt" x="410" y="41" text-anchor="start" font-size="13.5">get_calendar <tspan class="d-sub">· the calendar CLIs</tspan></text>
+	  <rect class="d-card" x="388" y="68" width="368" height="44" rx="10"/>
+	  <text class="d-txt" x="410" y="95" text-anchor="start" font-size="13.5">search_email <tspan class="d-sub">· gmail, read only</tspan></text>
+	  <rect class="d-card" x="388" y="122" width="368" height="44" rx="10"/>
+	  <text class="d-txt" x="410" y="149" text-anchor="start" font-size="13.5">search_docs <tspan class="d-sub">· notes and files, local</tspan></text>
+	  <rect class="d-card" x="388" y="176" width="368" height="44" rx="10"/>
+	  <text class="d-txt" x="410" y="203" text-anchor="start" font-size="13.5">scheduler <tspan class="d-sub">· timers and reminders</tspan></text>
+	  <rect class="d-card" x="388" y="230" width="368" height="44" rx="10"/>
+	  <text class="d-txt" x="410" y="257" text-anchor="start" font-size="13.5">query_finances <tspan class="d-sub">· Jarvis, the money app</tspan></text>
+	</svg>
+</Figure>
+
+The useful data stays on my Mac. My calendar, inbox, notes, and spending each have a small tool that fetches what is needed, and only the question and the top few results go to the model. Less to send means less to pay for, and less to wait on.
+
+<StatTable
+	caption="the two numbers, measured"
+	rows={[
+		{ label: 'Trivial ask', value: '~1s, free', note: 'fast path, no model call' },
+		{ label: 'A real question', value: '~4s, ~$0.002', note: 'small model plus tools' },
+		{ label: 'The model I skipped', value: '25s', note: 'a reasoning model, on "what is on my calendar"' },
+		{ label: 'Claude, for scale', value: '5 to 50s', note: 'sharper, too slow to talk to' },
+	]}
+/>
+
+I started by looking for the model that would make this feel intelligent, but I ended up building around the model that would answer before I stopped talking. The model is a one line swap. The decisions around it are what keep the assistant quick enough and cheap enough to use all day.
+
+The real build was deciding when the model did not need to run.

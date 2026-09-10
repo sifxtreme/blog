@@ -1,0 +1,136 @@
+---
+title: "iMessage and WhatsApp, and the iOS wall"
+description: "I wanted my assistant to read a message and send a reply. iOS said no, and that no turns out to be one of the most deliberately built walls in consumer software."
+problem: "Give a phone assistant access to messages iOS keeps outside apps."
+pubDate: '2026-08-24'
+tags: ['ios', 'voice-assistant', 'messaging', 'architecture']
+series:
+  name: 'Playing with hardware'
+  part: 5
+aiUsage: 'ai-written'
+telemetry:
+  model: 'claude-opus-4-8 draft, codex gpt-5.6-luna rewrite'
+  ccVersion: '2.1.241'
+  liveAfterMin: 47
+  redeploys: 6
+  instructions: 10
+  turns: 113
+  toolCalls: 41
+  compacts: 0
+  phoneRelayed: false
+pangram:
+  verdict: 'AI'
+  human: 0
+  assisted: 0
+  ai: 100
+  model: 'v3.3.2'
+  checkedOn: '2026-09-10'
+---
+
+import StatTable from '../../components/StatTable.astro';
+import Diagram from '../../components/Diagram.astro';
+import Figure from '../../components/Figure.astro';
+import Callout from '../../components/Callout.astro';
+import Chip from '../../components/Chip.astro';
+
+{/* CodeLink goes at the top once the code is public. */}
+
+I wanted my voice assistant to do the obvious thing. Read the text my wife just sent. Reply that I am ten minutes out. On the phone, that takes one tap for me. An app I write gets a flat NO.
+
+This is not a missing feature. It is a wall built on purpose. It has several layers. I checked what those layers are, whether the newest iOS moves them, and what gets around the wall.
+
+<Callout tone="key">
+On the phone, no app can read another app's data. iMessage and WhatsApp add their own locks. The way in is through a computer I already own.
+</Callout>
+
+## The wall starts under everything
+
+iOS gives every app its own sealed box. It is not a folder with permissions I can change. The kernel enforces the boundary. Every app runs as the same user, so file ownership does not help. The kernel refuses to open a file outside the app's box. My app cannot read the Messages box. It cannot read yours either.
+
+The only thing that widens the box is a private entitlement. Apple signs entitlements into an app. It gives the restricted ones to its own apps. An app that claims one gets killed when it launches. There is no API, setting, or toggle I missed. The way through is to jailbreak the phone, which turns this protection off.
+
+## iMessage has its own locks
+
+On top of that, iMessage has two more locks. The messages live in a database OUTSIDE every app. A system service owns it, not the Messages app. Apple's private framework is the only code that reads it. It requires an entitlement I cannot get. Someone linked that framework on a Mac to test it. The message list still came back empty.
+
+The most my app can do is open the compose sheet with text filled in. The person still has to tap send. It cannot read. It cannot send on my behalf.
+
+## WhatsApp locks it differently
+
+WhatsApp does not keep a readable copy of your messages on a server. The messages are end to end encrypted. Only the phones in the conversation hold the real text. On the phone, that text sits inside WhatsApp's sealed box. Its keys are in WhatsApp's keychain. The same wall applies. There is no API for a personal account. There is nothing to call, official or not.
+
+## But surely the new iOS changed this
+
+That was my next hope, so I checked the current release. It added one new thing. It does not solve my case.
+
+<StatTable
+	caption="what the latest iOS actually opened"
+	rows={[
+		{ label: 'The new API', value: 'EU only', note: 'and only if my app is set as the default messaging app' },
+		{ label: 'What it carries', value: 'SMS, MMS, RCS', note: 'iMessage is left out on purpose' },
+		{ label: 'WhatsApp', value: 'untouched', note: 'nothing here applies to it' },
+	]}
+/>
+
+The one opening is carrier texts in Europe, for an app set as the default messaging app. It does not cover my iMessage or my WhatsApp. It does not apply where I live. The wall did not move for me.
+
+## The move is to stop fighting the phone
+
+Once I stopped trying to knock the wall down, the design got simple. The phone is a thin client. Apple intends it to stay one. So I let it. The phone is the microphone, speaker, and screen. The work lives on a computer I own, reached over my private network.
+
+<Figure
+	label="The phone tries to read and send iMessage and WhatsApp directly, and the iOS wall blocks that path. Instead the phone talks over Tailscale to a Mac or always-on box that holds the message database and the WhatsApp session, and that computer does the reading and sending."
+	caption="The phone cannot cross the wall. A computer that already holds the session can."
+>
+	<svg viewBox="0 0 940 360" xmlns="http://www.w3.org/2000/svg">
+	  <defs>
+	    <marker id="dg-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="context-stroke"/></marker>
+	    <pattern id="dg-hatch" width="7" height="7" patternTransform="rotate(45)" patternUnits="userSpaceOnUse"><rect class="d-hatch-bg" width="7" height="7"/><line class="d-hatch-line" x1="0" y1="0" x2="0" y2="7"/></pattern>
+	  </defs>
+
+	  <path class="d-edge d-bad d-dash" d="M256 176 H364 V118 H452"/>
+	  <text class="d-mark d-bad" x="463" y="125" text-anchor="middle" font-size="21">✕</text>
+	  <text class="d-txt d-sub" x="372" y="106" text-anchor="middle" font-size="13">direct read + send</text>
+
+	  <path class="d-edge d-good" d="M256 204 H364 V291 H430" marker-end="url(#dg-arrow)"/>
+	  <text class="d-txt d-sub" x="393" y="316" text-anchor="middle" font-size="13">Tailscale</text>
+
+	  <path class="d-edge d-accent" d="M688 291 H838 V234" marker-end="url(#dg-arrow)"/>
+	  <text class="d-txt d-sub" x="861" y="270" text-anchor="middle" font-size="13">reads + sends</text>
+
+	  <rect class="d-card d-accent" x="60" y="150" width="196" height="80" rx="14"/>
+	  <text class="d-txt d-accent" x="158" y="187" text-anchor="middle" font-size="18">iPhone</text>
+	  <text class="d-txt d-sub" x="158" y="211" text-anchor="middle" font-size="13">Radar app</text>
+
+	  <rect class="d-wall d-bad" x="474" y="60" width="28" height="120" rx="5"/>
+	  <text class="d-txt d-sub" x="488" y="202" text-anchor="middle" font-size="13">iOS wall</text>
+
+	  <rect class="d-card d-accent" x="432" y="250" width="256" height="82" rx="14"/>
+	  <text class="d-txt d-accent" x="560" y="285" text-anchor="middle" font-size="17">Mac / always-on box</text>
+	  <text class="d-txt d-sub" x="560" y="308" text-anchor="middle" font-size="12.5">holds chat.db · WA session</text>
+
+	  <rect class="d-card d-accent" x="748" y="150" width="182" height="82" rx="14"/>
+	  <text class="d-txt d-accent" x="839" y="186" text-anchor="middle" font-size="17">iMessage</text>
+	  <text class="d-txt d-accent" x="839" y="210" text-anchor="middle" font-size="17">WhatsApp</text>
+	</svg>
+</Figure>
+
+The phone asks the computer. The computer is allowed to hold the session, so it reads and sends the messages. That is the whole trick.
+
+## What actually works, and what it costs
+
+<Chip tone="accent">Works</Chip> **iMessage** is the straightforward one. A Mac can read its own message database and send from it. A small service on the Mac does that, and the phone talks to the service. It is the same pattern BlueBubbles and AirMessage have used for years. The Mac has to stay awake. If it sleeps, the bridge is gone.
+
+<Chip>Risk</Chip> **WhatsApp** can be built the same way. A companion client on the always-on computer links as a device, like WhatsApp Web. It can read and send my messages. But it breaks WhatsApp's terms. Meta bans numbers that look automated. Keeping it small and personal lowers the risk. It does not remove it. A ban has no appeal.
+
+<Chip tone="accent">Clean</Chip> If I only want the assistant to message people, **Telegram** has an official API. **Signal** has a supported command line client. WhatsApp is the one without a clean door. I plan around that.
+
+<Callout tone="warn" title="The WhatsApp catch">
+The companion client works, but it breaks WhatsApp's terms. A ban can happen without warning and has no appeal. If I build it, I will use a secondary number. I will not use my main account.
+</Callout>
+
+## Where I landed
+
+The wall stopped being a blocker once I treated it as a design constraint. iOS wants the phone thin. I keep it thin and put the rest on machines I trust. My messages come from a Mac that owns them. My files and tools live on the same box. The phone only asks for what it needs.
+
+The wall is part of the design. It moved the message work off the phone and onto the computers I already run.

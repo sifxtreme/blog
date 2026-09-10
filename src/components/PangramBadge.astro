@@ -1,0 +1,147 @@
+---
+// The independent-detector badge. Sits next to AIBadge. AIBadge is my OWN call on
+// how the post was made (directed vs written); this is what Pangram, a third-party
+// AI-text detector, reads off the finished prose. They measure different things and
+// can disagree — that's the honest, interesting part. Driven by `pangram` frontmatter
+// (scripts/pangram-scores.mjs); renders nothing when absent.
+interface Pangram {
+	verdict: string; // 'Human' | 'Mixed' | 'AI'
+	human: number; // percent 0-100
+	assisted: number;
+	ai: number;
+	model: string; // e.g. 'v3.3.2'
+	checkedOn: string; // YYYY-MM-DD
+}
+
+interface Props {
+	pangram?: Pangram;
+}
+
+const { pangram } = Astro.props;
+
+// The headline number: whichever share is largest, shown as "N% <label>".
+const dominant = (p: Pangram) => {
+	const parts = [
+		{ v: p.human, label: 'human' },
+		{ v: p.ai, label: 'AI' },
+		{ v: p.assisted, label: 'AI-assisted' },
+	];
+	parts.sort((a, b) => b.v - a.v);
+	return `${Math.round(parts[0].v)}% ${parts[0].label}`;
+};
+
+// Color key off the verdict, matching AIBadge's accents (human=green, AI=purple, mixed=amber).
+const tone = (v: string) => {
+	const s = v.toLowerCase();
+	if (s.includes('human')) return 'human';
+	if (s.includes('mix')) return 'mixed';
+	return 'ai';
+};
+---
+
+{
+	pangram && (
+		<span class="pg-badge" data-tone={tone(pangram.verdict)}>
+			<span class="pg-badge__icon" aria-hidden="true">
+				🔍
+			</span>
+			<span class="pg-badge__label">Pangram: {dominant(pangram)}</span>
+			<span class="pg-badge__detail">
+				Read by Pangram {pangram.model}, an independent AI-text detector, run on the
+				prose only. It reads the finished text, not how the piece was made — so
+				something I directed heavily can still read as AI here. The badge to the left
+				is my call; this is the machine's. Human {Math.round(pangram.human)}% ·
+				AI-assisted {Math.round(pangram.assisted)}% · AI {Math.round(pangram.ai)}%.
+				Checked {pangram.checkedOn} at pangram.com.
+			</span>
+		</span>
+	)
+}
+
+<style>
+	.pg-badge {
+		--badge-fg: rgb(var(--gray-dark));
+		--badge-bg: rgb(var(--gray-light));
+		--badge-ring: rgba(var(--gray), 0.35);
+		display: inline-flex;
+		align-items: center;
+		gap: 0.4em;
+		padding: 0.3em 0.7em;
+		border: 1px solid var(--badge-ring);
+		border-radius: 999px;
+		background: var(--badge-bg);
+		color: var(--badge-fg);
+		font-size: 0.8rem;
+		font-weight: 600;
+		line-height: 1;
+		letter-spacing: 0.01em;
+		position: relative;
+		cursor: default;
+		user-select: none;
+	}
+
+	.pg-badge[data-tone='human'] {
+		--badge-ring: rgba(34, 139, 87, 0.4);
+		--badge-bg: rgba(34, 139, 87, 0.1);
+		--badge-fg: rgb(28, 110, 70);
+	}
+	.pg-badge[data-tone='mixed'] {
+		--badge-ring: rgba(217, 119, 6, 0.45);
+		--badge-bg: rgba(217, 119, 6, 0.12);
+		--badge-fg: rgb(170, 92, 4);
+	}
+	.pg-badge[data-tone='ai'] {
+		--badge-ring: rgba(124, 58, 237, 0.45);
+		--badge-bg: rgba(124, 58, 237, 0.12);
+		--badge-fg: rgb(109, 40, 217);
+	}
+
+	.pg-badge__icon {
+		font-size: 0.9em;
+	}
+
+	.pg-badge__detail {
+		position: absolute;
+		top: calc(100% + 0.5em);
+		left: 0;
+		width: max-content;
+		max-width: 22rem;
+		padding: 0.6em 0.8em;
+		border-radius: 0.5rem;
+		background: rgb(var(--black));
+		color: white;
+		font-size: 0.75rem;
+		font-weight: 400;
+		line-height: 1.4;
+		letter-spacing: 0;
+		opacity: 0;
+		transform: translateY(-0.25em);
+		pointer-events: none;
+		transition:
+			opacity 0.15s ease,
+			transform 0.15s ease;
+		z-index: 10;
+	}
+
+	.pg-badge:hover .pg-badge__detail,
+	.pg-badge:focus-within .pg-badge__detail {
+		opacity: 1;
+		transform: translateY(0);
+	}
+
+	@media (prefers-color-scheme: dark) {
+		.pg-badge[data-tone='human'] {
+			--badge-fg: rgb(110, 220, 160);
+		}
+		.pg-badge[data-tone='mixed'] {
+			--badge-fg: rgb(240, 180, 90);
+		}
+		.pg-badge[data-tone='ai'] {
+			--badge-fg: rgb(196, 160, 255);
+		}
+		.pg-badge__detail {
+			background: rgb(230, 230, 235);
+			color: rgb(20, 20, 25);
+		}
+	}
+</style>

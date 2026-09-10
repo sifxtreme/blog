@@ -1,6 +1,7 @@
 ---
 title: 'Keeping the sessions was the easy part'
 description: 'I keep every Claude Code session as a file. Then I needed to find one. grep across a couple thousand JSONL transcripts is slow and dumb, so I built a local hybrid search over them.'
+problem: "Find the right session when I remember the problem, not its words."
 pubDate: '2026-07-13'
 tags: ['claude', 'files-are-king', 'search']
 aiUsage: 'assisted'
@@ -14,10 +15,18 @@ telemetry:
   toolCalls: 67
   compacts: 0
   phoneRelayed: false
+pangram:
+  verdict: 'AI'
+  human: 0
+  assisted: 0
+  ai: 100
+  model: 'v3.3.2'
+  checkedOn: '2026-09-10'
 ---
 
 import StatTable from '../../components/StatTable.astro';
 import CodeLink from '../../components/CodeLink.astro';
+import Figure from '../../components/Figure.astro';
 
 <CodeLink href="https://gist.github.com/sifxtreme/608d9a7bcff328cb9f016a6ceb1d82f2" label="the gist" />
 
@@ -61,17 +70,40 @@ Anything with fewer than two of my messages gets skipped. Those are the sessions
 
 Then I pointed the same indexer at two more piles: my daily session journals, and my docs folder, split on `##` headings so each section is its own hit. Same pipeline, same table, one ranked list at the end.
 
-<figure style="margin:2rem 0;">
-	<picture>
-		<source srcset="/diagrams/findsession-index.dark.svg" media="(prefers-color-scheme: dark)" />
-		<img
-			src="/diagrams/findsession-index.light.svg"
-			alt="Three sources feed one fingerprint: 2,491 session transcripts, 131 daily journals, and 5,948 doc sections. The fingerprint is the first message, last message, and last reply, capped at 3,500 characters. It goes to two local Ollama models, nomic-embed-text for a 768-dimension vector and qwen2.5:14b for a summary and title, both landing in a 104 MB SQLite file. The title model also appends a custom-title line back into the transcript it read."
-			style="width:100%;height:auto;border:1px solid rgb(var(--border));border-radius:12px;"
-		/>
-	</picture>
-	<figcaption style="text-align:center;color:rgb(var(--gray));font-size:0.85em;margin-top:0.6rem;">Three sources, one fingerprint, one file. The dotted line is the part I didn't plan.</figcaption>
-</figure>
+<Figure
+	label="Three sources feed one fingerprint: 2,491 session transcripts, 131 daily journals, and 5,948 doc sections. The fingerprint is the first message, last message, and last reply, capped at 3,500 characters. It goes to two local Ollama models, nomic-embed-text for a 768-dimension vector and qwen2.5:14b for a summary and title, both landing in a 104 MB SQLite file. The title model also appends a custom-title line back into the transcript it read."
+	caption="Three sources, one fingerprint, one file. The dotted line is the part I didn't plan."
+>
+	<svg viewBox="0 0 900 288" xmlns="http://www.w3.org/2000/svg"><defs><marker id="dg-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="context-stroke"/></marker></defs>
+	  <path class="d-edge d-dash" d="M578 176 C578 12 300 12 132 36" marker-end="url(#dg-arrow)"/>
+	  <text class="d-txt d-sub" x="350" y="20" text-anchor="middle" font-size="12">the title model appends a line back</text>
+	  <path class="d-edge" d="M196 59 C224 78 236 112 248 132" marker-end="url(#dg-arrow)"/>
+	  <path class="d-edge" d="M196 139 L248 143" marker-end="url(#dg-arrow)"/>
+	  <path class="d-edge" d="M196 219 C224 200 236 166 248 154" marker-end="url(#dg-arrow)"/>
+	  <path class="d-edge d-accent" d="M442 128 C462 108 470 90 478 78" marker-end="url(#dg-arrow)"/>
+	  <path class="d-edge d-accent" d="M442 160 C462 180 470 190 478 194" marker-end="url(#dg-arrow)"/>
+	  <path class="d-edge" d="M682 74 C704 92 712 116 720 128" marker-end="url(#dg-arrow)"/>
+	  <path class="d-edge" d="M682 198 C704 180 712 156 720 144" marker-end="url(#dg-arrow)"/>
+	  <rect class="d-card" x="26" y="36" width="170" height="46" rx="10"/>
+	  <text class="d-txt" x="111" y="64" text-anchor="middle" font-size="13.5">2,491 sessions</text>
+	  <rect class="d-card" x="26" y="120" width="170" height="46" rx="10"/>
+	  <text class="d-txt" x="111" y="148" text-anchor="middle" font-size="13.5">131 journals</text>
+	  <rect class="d-card" x="26" y="204" width="170" height="46" rx="10"/>
+	  <text class="d-txt" x="111" y="232" text-anchor="middle" font-size="13.5">5,948 doc sections</text>
+	  <rect class="d-card d-accent" x="250" y="110" width="192" height="66" rx="12"/>
+	  <text class="d-txt d-accent" x="346" y="138" text-anchor="middle" font-size="14">Fingerprint</text>
+	  <text class="d-txt d-sub" x="346" y="156" text-anchor="middle" font-size="11">3 messages, 3,500 chars</text>
+	  <rect class="d-card" x="480" y="48" width="200" height="54" rx="11"/>
+	  <text class="d-txt" x="580" y="72" text-anchor="middle" font-size="13.5">nomic-embed</text>
+	  <text class="d-txt d-sub" x="580" y="90" text-anchor="middle" font-size="11">768-dim vector</text>
+	  <rect class="d-card" x="480" y="170" width="200" height="54" rx="11"/>
+	  <text class="d-txt" x="580" y="194" text-anchor="middle" font-size="13.5">qwen2.5</text>
+	  <text class="d-txt d-sub" x="580" y="212" text-anchor="middle" font-size="11">summary + title</text>
+	  <rect class="d-card" x="722" y="102" width="152" height="66" rx="12"/>
+	  <text class="d-txt" x="798" y="130" text-anchor="middle" font-size="14">104 MB</text>
+	  <text class="d-txt d-sub" x="798" y="148" text-anchor="middle" font-size="11.5">SQLite</text>
+	</svg>
+</Figure>
 
 <StatTable
 	caption="what's in the index today"
@@ -131,17 +163,31 @@ const merged = [...scores.values()].sort((a, b) => b.score - a.score);
 
 Something both searches liked floats to the top. Something one search loved and the other never saw still places. The 60 is a dampener from the original paper that stops the first result from running away with it. That's the entire algorithm, it's about ten lines, and I have never once wanted to tune it.
 
-<figure style="margin:2rem 0;">
-	<picture>
-		<source srcset="/diagrams/findsession-query.dark.svg" media="(prefers-color-scheme: dark)" />
-		<img
-			src="/diagrams/findsession-query.light.svg"
-			alt="A query splits two ways. One path goes to FTS5 keyword search with a porter stemmer. The other embeds the query with nomic-embed-text and runs a vec0 nearest-neighbor search by cosine distance. Each returns a ranked list. Reciprocal rank fusion combines them by adding 1 divided by 60 plus rank, producing the top 5 hits across sessions, journals, and docs."
-			style="width:100%;height:auto;border:1px solid rgb(var(--border));border-radius:12px;"
-		/>
-	</picture>
-	<figcaption style="text-align:center;color:rgb(var(--gray));font-size:0.85em;margin-top:0.6rem;">Neither list wins. They vote.</figcaption>
-</figure>
+<Figure
+	label="A query splits two ways. One path goes to FTS5 keyword search with a porter stemmer. The other embeds the query with nomic-embed-text and runs a vector nearest-neighbor search by cosine distance. Each returns a ranked list. Reciprocal rank fusion combines them, producing the top 5 hits across sessions, journals, and docs."
+	caption="Neither list wins. They vote."
+>
+	<svg viewBox="0 0 824 250" xmlns="http://www.w3.org/2000/svg"><defs><marker id="dg-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="context-stroke"/></marker></defs>
+	  <path class="d-edge" d="M146 100 C180 74 190 60 206 58" marker-end="url(#dg-arrow)"/>
+	  <path class="d-edge" d="M146 130 C180 156 190 172 206 174" marker-end="url(#dg-arrow)"/>
+	  <path class="d-edge" d="M432 58 C470 82 480 98 490 108" marker-end="url(#dg-arrow)"/>
+	  <path class="d-edge" d="M432 174 C470 150 480 134 490 124" marker-end="url(#dg-arrow)"/>
+	  <path class="d-edge d-accent" d="M644 116 L680 116" marker-end="url(#dg-arrow)"/>
+	  <rect class="d-card" x="24" y="86" width="122" height="58" rx="11"/>
+	  <text class="d-txt" x="85" y="119" text-anchor="middle" font-size="14">A query</text>
+	  <rect class="d-card" x="206" y="30" width="226" height="56" rx="11"/>
+	  <text class="d-txt" x="319" y="54" text-anchor="middle" font-size="14">FTS5 keyword</text>
+	  <text class="d-txt d-sub" x="319" y="72" text-anchor="middle" font-size="11.5">porter stemmer</text>
+	  <rect class="d-card" x="206" y="146" width="226" height="56" rx="11"/>
+	  <text class="d-txt" x="319" y="170" text-anchor="middle" font-size="14">vector search</text>
+	  <text class="d-txt d-sub" x="319" y="188" text-anchor="middle" font-size="11.5">nomic-embed, cosine</text>
+	  <rect class="d-card d-accent" x="490" y="82" width="154" height="68" rx="12"/>
+	  <text class="d-txt d-accent" x="567" y="110" text-anchor="middle" font-size="14">Reciprocal rank</text>
+	  <text class="d-txt d-accent" x="567" y="128" text-anchor="middle" font-size="14">fusion</text>
+	  <rect class="d-card" x="682" y="88" width="120" height="56" rx="11"/>
+	  <text class="d-txt" x="742" y="121" text-anchor="middle" font-size="14">top 5</text>
+	</svg>
+</Figure>
 
 What comes out:
 
@@ -194,17 +240,32 @@ It worked. It also started forking my sessions.
 
 My two Macs sync `~/.claude` over Syncthing, and Syncthing decides which copy of a file is newer by looking at the mtime. By rewinding it, I hadn't just hidden the write from my indexer. I'd hidden it from Syncthing, which now had two files with the same timestamp and different contents and no way to order them. So it did the safe thing and kept both. One `.sync-conflict` copy, every night.
 
-<figure style="margin:2rem 0;">
-	<picture>
-		<source srcset="/diagrams/findsession-mtime.dark.svg" media="(prefers-color-scheme: dark)" />
-		<img
-			src="/diagrams/findsession-mtime.light.svg"
-			alt="Two lanes. What I shipped first: append the title to the transcript, rewind the mtime so my own indexer skips it, Syncthing then sees the same mtime with different bytes, and it keeps both copies, producing one sync-conflict file per night. What actually works: append the title, let the mtime advance, record the new mtime in the index instead, and Syncthing orders it fine, with only one Mac allowed to write."
-			style="width:100%;height:auto;border:1px solid rgb(var(--border));border-radius:12px;"
-		/>
-	</picture>
-	<figcaption style="text-align:center;color:rgb(var(--gray));font-size:0.85em;margin-top:0.6rem;">The mtime isn't yours. Other programs are reading it.</figcaption>
-</figure>
+<Figure
+	label="Two lanes. What I shipped first: append the title, rewind the mtime so my indexer skips it, and Syncthing keeps both copies, one conflict per night. What works: append the title, let the mtime advance, record the new mtime in the index, and Syncthing orders it fine."
+	caption="The mtime isn't yours. Other programs are reading it."
+>
+	<svg viewBox="0 0 800 214" xmlns="http://www.w3.org/2000/svg"><defs><marker id="dg-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="context-stroke"/></marker></defs>
+	  <path class="d-edge d-dash" d="M186 92 C236 74 250 62 274 60" marker-end="url(#dg-arrow)"/>
+	  <path class="d-edge d-dash" d="M486 58 L520 58" marker-end="url(#dg-arrow)"/>
+	  <text class="d-mark" x="726" y="66" text-anchor="middle" font-size="20">✕</text>
+	  <path class="d-edge d-accent" d="M186 120 C236 138 250 148 274 150" marker-end="url(#dg-arrow)"/>
+	  <path class="d-edge d-accent" d="M486 150 L520 150" marker-end="url(#dg-arrow)"/>
+	  <rect class="d-card" x="30" y="78" width="156" height="58" rx="11"/>
+	  <text class="d-txt" x="108" y="103" text-anchor="middle" font-size="14">append the title</text>
+	  <text class="d-txt d-sub" x="108" y="122" text-anchor="middle" font-size="11.5">to the transcript</text>
+	  <rect class="d-card d-dim" x="276" y="30" width="210" height="56" rx="11"/>
+	  <text class="d-txt" x="381" y="54" text-anchor="middle" font-size="14">rewind the mtime</text>
+	  <text class="d-txt d-sub" x="381" y="72" text-anchor="middle" font-size="11.5">so my indexer skips it</text>
+	  <rect class="d-card d-dim" x="522" y="30" width="186" height="56" rx="11"/>
+	  <text class="d-txt" x="615" y="54" text-anchor="middle" font-size="13.5">Syncthing keeps both</text>
+	  <text class="d-txt d-sub" x="615" y="72" text-anchor="middle" font-size="11.5">a conflict every night</text>
+	  <rect class="d-card d-accent" x="276" y="122" width="210" height="56" rx="11"/>
+	  <text class="d-txt d-accent" x="381" y="146" text-anchor="middle" font-size="14">let the mtime advance</text>
+	  <text class="d-txt d-sub" x="381" y="164" text-anchor="middle" font-size="11.5">record it in the index</text>
+	  <rect class="d-card d-accent" x="522" y="122" width="186" height="56" rx="11"/>
+	  <text class="d-txt d-accent" x="615" y="155" text-anchor="middle" font-size="14">Syncthing orders it fine</text>
+	</svg>
+</Figure>
 
 Two things were wrong here and both needed fixing.
 

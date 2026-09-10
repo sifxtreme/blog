@@ -2,6 +2,7 @@
 import { Image } from 'astro:assets';
 import type { CollectionEntry } from 'astro:content';
 import AIBadge from '../components/AIBadge.astro';
+import PangramBadge from '../components/PangramBadge.astro';
 import BaseHead from '../components/BaseHead.astro';
 import CopyForLLM from '../components/CopyForLLM.astro';
 import Footer from '../components/Footer.astro';
@@ -9,6 +10,7 @@ import FormattedDate from '../components/FormattedDate.astro';
 import Header from '../components/Header.astro';
 import TelemetryFooter from '../components/TelemetryFooter.astro';
 import ShareButtons from '../components/ShareButtons.astro';
+import SeriesNav from '../components/SeriesNav.astro';
 
 type Props = CollectionEntry<'blog'>['data'] & {
 	ogImagePath?: string;
@@ -19,6 +21,7 @@ type Props = CollectionEntry<'blog'>['data'] & {
 const {
 	title,
 	description,
+	problem,
 	pubDate,
 	updatedDate,
 	heroImage,
@@ -26,6 +29,8 @@ const {
 	tags,
 	link,
 	telemetry,
+	pangram,
+	series,
 	ogImagePath,
 	slug,
 	body,
@@ -112,6 +117,28 @@ const canonicalUrl = slug
 			.title hr {
 				margin: 1.75em 0 0;
 			}
+			.problem {
+				margin: 1.75em 0 0.5em;
+				padding: 0.85em 1.1em;
+				border-left: 3px solid rgb(var(--accent));
+				background: rgba(var(--accent-rgb), 0.06);
+				border-radius: 0 8px 8px 0;
+			}
+			.problem__label {
+				display: block;
+				font-size: 0.72rem;
+				letter-spacing: 0.07em;
+				text-transform: uppercase;
+				font-weight: 700;
+				color: rgb(var(--accent-dark));
+				margin-bottom: 0.2em;
+			}
+			.problem__text {
+				margin: 0;
+				font-size: 1.05rem;
+				line-height: 1.5;
+				color: rgb(var(--black));
+			}
 			@media (max-width: 720px) {
 				.prose {
 					padding: 0.5em;
@@ -141,6 +168,7 @@ const canonicalUrl = slug
 						<div class="meta">
 							<FormattedDate date={pubDate} />
 							<AIBadge usage={aiUsage} />
+							<PangramBadge pangram={pangram} />
 							{
 								updatedDate && (
 									<span class="last-updated-on">
@@ -180,7 +208,35 @@ const canonicalUrl = slug
 						}
 						<hr />
 					</div>
+					{
+						problem && (
+							<aside class="problem">
+								<span class="problem__label">The problem</span>
+								<p class="problem__text">{problem}</p>
+							</aside>
+						)
+					}
+					{
+						series && slug && (
+							<SeriesNav
+								name={series.name}
+								part={series.part}
+								currentSlug={slug}
+								variant="top"
+							/>
+						)
+					}
 					<slot />
+					{
+						series && slug && (
+							<SeriesNav
+								name={series.name}
+								part={series.part}
+								currentSlug={slug}
+								variant="bottom"
+							/>
+						)
+					}
 					{canonicalUrl && <ShareButtons title={title} url={canonicalUrl} />}
 					{telemetry && <TelemetryFooter telemetry={telemetry} aiUsage={aiUsage} />}
 				</div>

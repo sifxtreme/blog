@@ -1,0 +1,77 @@
+---
+title: "Silly little apps for a $40 touchscreen"
+description: "The last two posts turned a forty dollar screen into a careful voice assistant. This one is the opposite. I filled the same screen with tiny toys: a morning oracle that reads my real calendar, a bedtime storyteller for the kids, a math duel, and a magic 8-ball you shake."
+pubDate: '2026-08-24'
+tags: ['ai', 'hardware', 'esp32', 'kids']
+series:
+  name: 'Playing with hardware'
+  part: 3
+aiUsage: 'ai-written'
+telemetry:
+  model: 'claude-opus-4-8[1m]'
+  ccVersion: '2.1.241'
+  liveAfterMin: 29
+  redeploys: 1
+  instructions: 8
+  turns: 122
+  toolCalls: 49
+  compacts: 0
+  phoneRelayed: false
+pangram:
+  verdict: 'Mixed'
+  human: 46
+  assisted: 0
+  ai: 54
+  model: 'v3.3.2'
+  checkedOn: '2026-09-10'
+---
+
+import StatTable from '../../components/StatTable.astro';
+import Video from '../../components/Video.astro';
+
+{/* CodeLink goes at the top once the code is public. */}
+
+The last 2 posts were about making this forty dollar touchscreen useful. I turned it into a voice assistant, worried about latency and cost, and tried hard to make it reliable enough to trust. This post is the opposite of all that. I wanted to know what else a screen with a mic, a speaker, and a shake sensor could be, so I stopped being careful and filled it with toys.
+
+It started as a magic 8-ball. That was the whole app, shake it and it answers, and it was charming for about a day. So I asked for a whimsical way to use the thing to the full, and by the end of the weekend the board had 10 tiles on it. A morning oracle. A bedtime storyteller. A math duel for the kids. Hot potato. The 8-ball, demoted to one tile of many. It's all one firmware with a launcher, so switching apps is a tap, not a reflash. It even came with a little 3.7V battery, which doesn't last long, but lasts long enough to pull the cable and pass the thing around for one game, which is all these ask of it.
+
+<figure style="margin:2rem 0;">
+	<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;max-width:520px;margin:0 auto;">
+		<img src="/media/board-augury.png" alt="A purple-headed app called AUGURY reading three lines: Three calls before noon, A gap that will not last, Rain then more rain." style="width:100%;height:auto;image-rendering:pixelated;border:1px solid rgb(var(--border));border-radius:12px;" />
+		<img src="/media/board-story.png" alt="A blue-headed app called STORY TIME telling a story titled The Gentle Scared Dragon, one sentence shown on screen." style="width:100%;height:auto;image-rendering:pixelated;border:1px solid rgb(var(--border));border-radius:12px;" />
+		<img src="/media/board-quiz.png" alt="A green-headed math quiz asking how many marbles are left when 44 are shared by 9 kids, with a big number pad and a GO button." style="width:100%;height:auto;image-rendering:pixelated;border:1px solid rgb(var(--border));border-radius:12px;" />
+		<img src="/media/board-8ball.png" alt="A magic 8-ball screen with an orange band reading Better not tell you now, and the words shake again below." style="width:100%;height:auto;image-rendering:pixelated;border:1px solid rgb(var(--border));border-radius:12px;" />
+	</div>
+	<figcaption style="text-align:center;color:rgb(var(--gray));font-size:0.85em;margin-top:0.6rem;">Four of the ten. One firmware, a launcher, and a tap between them.</figcaption>
+</figure>
+
+<Video
+	src="/media/whose-turn.mp4"
+	poster="/media/whose-turn.jpg"
+	maxWidth="520px"
+	caption="A tenth tile, in hand: shake it and it spins through names to pick whose turn does the dishes."
+/>
+
+The one that came out best is the augury. It reads my real calendar and the weather and writes 3 lines back, somewhere between a fortune teller and a fridge magnet. Three calls before noon. A gap that will not last. Rain, then more rain. I'm not in the habit of checking it, if I'm honest, but of all of them it's the one that works end to end. It leans on my Mac to write the lines, the same split of body and brain from the last 2 posts, so the board only has to show the words and say them out loud. A reading costs $0.00002, which is close enough to free that I stopped counting.
+
+The kids ones are the reason I built the rest. The bedtime storyteller takes 2 words, a dragon and the dark, say, and tells a 60 second story one sentence at a time, so a small kid can follow it on the screen while it reads aloud. The math duel throws word problems and a big number pad, and it won't move on until the answer is right. The catch is my youngest is 3, and the easiest level is still too hard for him, so for now that tile is a small lie to him. I left it that way on purpose rather than guess at a counting mode I hadn't watched him actually use.
+
+Here's the honest part.
+
+<StatTable
+	caption="what's real, and what's only tested"
+	rows={[
+		{ label: 'Tiles on the board', value: '10', note: 'one firmware, tap to switch' },
+		{ label: 'Passing the simulator', value: 'all 10', note: '18,000 math questions among them' },
+		{ label: 'Actually used on the board', value: '1', note: 'the morning augury' },
+		{ label: 'Cost of a reading', value: '$0.00002', note: 'the Mac writes the lines' },
+	]}
+/>
+
+Every tile is flashed and every one passes a little simulator that plays the whole game on my Mac, 18,000 math questions among them. But if I'm honest, I'm barely using any of them day to day. Only the augury has run with hands and ears on the real board; everything that needs a finger or a voice is still unproven in the world. I built them because the ideas were fun, not because I needed them, and I'd rather say that than let a green test stand in for a kid actually playing it.
+
+One bug ate a whole afternoon. The board would not take new firmware. Every flash died with "No serial data received," even though my Mac saw a perfectly healthy USB connection the whole time. That connection is exactly what fooled me. The chip keeps its USB port awake even when the processor underneath has wedged, so a live port looks identical to a live board and is not one. The proof was the session id, byte for byte the same before and after a reset that reset nothing. The fix was the dumbest thing in the drawer, unplug it and plug it back in, a real power cut. A live port is not a live chip, the same way, 2 posts ago, a service that restarts was not a service that works.
+
+The real reason I keep picking this thing up is the constraint. A 1.8 inch screen, a shake sensor, and not much else force a real question every time, which is how the heck do I use THIS to make something worth using. A board too small to do the obvious thing makes you go find a better idea, and that hunt is where the good ones come from.
+
+So these don't have to be reliable or cheap to run or clever. They just have to be worth the 10 minutes a kid might spend looking at them, and forty dollars of screen turns out to be plenty for that. It's also, I can tell, the gateway drug of hardware. I've already started eyeing the next random little board, just to ask the question again.

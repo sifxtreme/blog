@@ -1,0 +1,142 @@
+---
+title: "I turned a $40 touchscreen into a voice assistant"
+description: "I turned a forty dollar touchscreen into a voice assistant by putting no AI on it. The board captures sound and draws pixels, the Mac does the thinking, and they talk over wifi."
+problem: "Build a useful voice assistant by keeping the hardware deliberately dumb."
+pubDate: '2026-08-21'
+tags: ['ai', 'hardware', 'esp32', 'local-ai']
+series:
+  name: 'Playing with hardware'
+  part: 1
+aiUsage: 'ai-written'
+telemetry:
+  model: 'claude-opus-4-8 draft, codex gpt-5.6-luna rewrite'
+  ccVersion: '2.1.238'
+  liveAfterMin: 220
+  redeploys: 1
+  instructions: 2
+  turns: 24
+  toolCalls: 9
+  compacts: 0
+  phoneRelayed: false
+pangram:
+  verdict: 'AI'
+  human: 0
+  assisted: 0
+  ai: 100
+  model: 'v3.3.2'
+  checkedOn: '2026-09-10'
+---
+
+import StatTable from '../../components/StatTable.astro';
+import Video from '../../components/Video.astro';
+import Figure from '../../components/Figure.astro';
+
+{/* CodeLink goes at the top once the code is public: make the esp32-s3-amoled repo public
+    or drop a gist, then import CodeLink and add <CodeLink href="…" label="the code" />. */}
+
+For the last few days a [1.8 inch touchscreen](https://www.waveshare.com/esp32-s3-touch-amoled-1.8.htm?sku=29957) has been my assistant. It cost about forty dollars. I say hey jarvis, ask what's on my calendar or set a timer or check what I spent at Home Depot, and it answers out loud.
+
+<Video
+	src="/media/radar-demo.mp4"
+	poster="/media/radar-demo.jpg"
+	maxWidth="340px"
+	caption="The real thing, answering out loud. Screen and voice are the board, the rest is on the Mac."
+/>
+
+The important part is that the device does none of the thinking. It's a mic, a speaker, a screen, and a radio. The wake word, the speech to text, and the reply all run on my Mac across the room.
+
+It's like a security camera, which captures the room and sends it somewhere else to be recognized. Once I stopped trying to make the board smart, the whole thing took an afternoon.
+
+## The split
+
+<Figure
+	label="The ESP32 board holds the microphone, speaker and screen and has no AI. It sends mic audio and taps to the Mac over UDP 3333. The Mac runs the wake word, Whisper, a small model with tools, and Kokoro, and sends reply audio back on 3334 and screen updates on 3336."
+	caption="The board is the body, the Mac is the brain, three UDP channels between."
+>
+	<svg viewBox="0 0 800 208" xmlns="http://www.w3.org/2000/svg"><defs><marker id="dg-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="context-stroke"/></marker></defs>
+	  <path class="d-edge d-accent" d="M274 84 L524 84" marker-end="url(#dg-arrow)"/>
+	  <text class="d-txt d-sub" x="399" y="76" text-anchor="middle" font-size="12.5">mic audio, taps · UDP 3333</text>
+	  <path class="d-edge" d="M524 122 L276 122" marker-end="url(#dg-arrow)"/>
+	  <text class="d-txt d-sub" x="399" y="142" text-anchor="middle" font-size="12.5">reply audio 3334 · screen 3336</text>
+	  <rect class="d-card d-dim" x="26" y="52" width="248" height="102" rx="12"/>
+	  <text class="d-txt" x="150" y="86" text-anchor="middle" font-size="15">ESP32 board</text>
+	  <text class="d-txt d-sub" x="150" y="108" text-anchor="middle" font-size="12">microphone · speaker · screen</text>
+	  <text class="d-txt d-sub" x="150" y="128" text-anchor="middle" font-size="12">no AI</text>
+	  <rect class="d-card d-accent" x="526" y="52" width="248" height="102" rx="12"/>
+	  <text class="d-txt d-accent" x="650" y="86" text-anchor="middle" font-size="15">Mac</text>
+	  <text class="d-txt d-sub" x="650" y="108" text-anchor="middle" font-size="12">wake word · Whisper</text>
+	  <text class="d-txt d-sub" x="650" y="128" text-anchor="middle" font-size="12">model + tools · Kokoro</text>
+	</svg>
+</Figure>
+
+There are 3 one way channels between them, all UDP. Mic audio and taps go to port 3333, replies come back on 3334, screen state and text on 3336. That's the whole contract, so I can swap in a bigger model, or the work version that talks to our CRM, and the firmware never changes.
+
+One detail cost me an afternoon. Any UDP packet over about 1024 bytes vanished, bigger than the wifi frame, and the ESP32 dropped the fragments silently. Smaller packets fixed it.
+
+## Getting code onto it
+
+The board runs one Arduino sketch, a single `.ino` file with `setup()` and `loop()`, written in C++ and flashed from the command line with `arduino-cli`, over the same USB cable that powers it.
+
+The part that fights you is the board definition, one long string naming every hardware quirk: PSRAM mode, flash size, native USB, the partition layout. Get one flag wrong and it still compiles, but the board won't boot, and nothing on the screen tells you why.
+
+```bash
+FQBN="esp32:esp32:esp32s3:PSRAM=opi,FlashSize=16M,CDCOnBoot=cdc,USBMode=hwcdc,PartitionScheme=app3M_fat9M_16MB"
+
+arduino-cli compile --upload -b "$FQBN" \
+  --libraries waveshare-repo/examples/arduino-v2/libraries \
+  -p /dev/cu.usbmodem1101 .
+```
+
+Waveshare ships the screen, audio, and touch drivers as a bundle you point the build at. After that it's a loop: edit, flash, read the serial log, about a minute each.
+
+## One turn
+
+<Figure
+	label="A turn: hey jarvis, the board streams the mic, the Mac hears the wake word, records until you stop, runs Whisper. Simple asks like time, calendar or a timer take a fast path that answers in about a second for free. Everything else goes to the model with tools. Either way Kokoro speaks the answer and the board plays it."
+	caption="One turn, wake to spoken answer."
+>
+	<svg viewBox="0 0 828 214" xmlns="http://www.w3.org/2000/svg"><defs><marker id="dg-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="context-stroke"/></marker></defs>
+	  <path class="d-edge d-accent" d="M176 110 L206 110" marker-end="url(#dg-arrow)"/>
+	  <path class="d-edge d-accent" d="M372 96 C400 78 414 66 438 62" marker-end="url(#dg-arrow)"/>
+	  <text class="d-txt d-sub" x="404" y="50" text-anchor="middle" font-size="12">simple: time, calendar, timer</text>
+	  <path class="d-edge" d="M372 124 C400 142 414 152 438 156" marker-end="url(#dg-arrow)"/>
+	  <text class="d-txt d-sub" x="404" y="182" text-anchor="middle" font-size="12">everything else</text>
+	  <path class="d-edge d-accent" d="M602 62 C630 78 640 92 652 104" marker-end="url(#dg-arrow)"/>
+	  <path class="d-edge" d="M602 156 C630 142 640 128 652 116" marker-end="url(#dg-arrow)"/>
+	  <rect class="d-card d-accent" x="24" y="82" width="152" height="56" rx="11"/>
+	  <text class="d-txt d-accent" x="100" y="115" text-anchor="middle" font-size="14">hey jarvis</text>
+	  <rect class="d-card" x="206" y="82" width="166" height="56" rx="11"/>
+	  <text class="d-txt" x="289" y="107" text-anchor="middle" font-size="14">record, then</text>
+	  <text class="d-txt d-sub" x="289" y="125" text-anchor="middle" font-size="11.5">run Whisper</text>
+	  <rect class="d-card d-accent" x="440" y="34" width="162" height="56" rx="11"/>
+	  <text class="d-txt d-accent" x="521" y="58" text-anchor="middle" font-size="14">fast path</text>
+	  <text class="d-txt d-sub" x="521" y="76" text-anchor="middle" font-size="11.5">about 1s, free</text>
+	  <rect class="d-card" x="440" y="128" width="162" height="56" rx="11"/>
+	  <text class="d-txt" x="521" y="161" text-anchor="middle" font-size="14">model with tools</text>
+	  <rect class="d-card d-accent" x="652" y="82" width="150" height="56" rx="11"/>
+	  <text class="d-txt d-accent" x="727" y="107" text-anchor="middle" font-size="14">Kokoro speaks,</text>
+	  <text class="d-txt d-sub" x="727" y="125" text-anchor="middle" font-size="11.5">the board plays it</text>
+	</svg>
+</Figure>
+
+A turn is a straight line. The board streams the mic, the Mac hears the wake word, records until I stop, runs Whisper, and hands the text to the model. Simple asks never reach it. A fast path answers time, calendar, and timer questions in about 1 second, and the rest goes to a small model with tools and comes back in about 4.
+
+The fast path is where I embarrassed myself. My clock shortcut matched "what time is it," and it also matched "what time is THAT," so when I asked what time a movie started it gave me the current time. I liked the clever version too much to notice it had become a different question.
+
+## Restart is not the same as works
+
+The worst one came at the end. I moved the brain to a background service so it would restart after a crash, and I tested it by killing the process. It came back every time, so I called it done.
+
+It was not done. The service started with an empty PATH, so it couldn't find the speech to text binary, and every request crashed transcription before the service restarted the same broken process. I had proven it RESTARTS. I had not proven it WORKS, and those are 2 different tests.
+
+<StatTable
+	caption="counted off the recordings"
+	rows={[
+		{ label: 'On the device', value: 'no AI', note: 'capture, play, draw, tap' },
+		{ label: 'Simple ask', value: '~1s', note: 'time, calendar, timer: no model, free' },
+		{ label: 'A real question', value: '~4s', note: 'small model plus tools' },
+		{ label: 'Cost per question', value: '~$0.002', note: 'Whisper and Kokoro run local and cost nothing' },
+	]}
+/>
+
+The board has no intelligence in it, and that's the point. It's a screen and a radio, and the assistant is a program on a Mac that happens to be on. The hard part wasn't putting a model on the board, it was deciding I didn't need to. The rest is me pointing it at my own life and asking out loud.

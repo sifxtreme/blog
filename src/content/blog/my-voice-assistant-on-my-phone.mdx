@@ -1,0 +1,126 @@
+---
+title: "My voice assistant, now on my phone"
+description: "I moved my voice assistant off a $40 desk screen and onto the phone I actually carry. The phone forced a clean split: it handles the senses, my own computers handle the brain."
+problem: "Run the voice loop on my phone; keep the brain at home."
+pubDate: '2026-08-24'
+tags: ['ai', 'voice-assistant', 'ios', 'architecture']
+series:
+  name: 'Playing with hardware'
+  part: 4
+aiUsage: 'ai-written'
+telemetry:
+  model: 'claude-opus-4-8 draft, codex gpt-5.6-luna rewrite'
+  ccVersion: '2.1.241'
+  liveAfterMin: 39
+  redeploys: 6
+  instructions: 7
+  turns: 74
+  toolCalls: 26
+  compacts: 0
+  phoneRelayed: false
+pangram:
+  verdict: 'AI'
+  human: 0
+  assisted: 0
+  ai: 100
+  model: 'v3.3.2'
+  checkedOn: '2026-09-10'
+---
+
+import StatTable from '../../components/StatTable.astro';
+import Figure from '../../components/Figure.astro';
+import Callout from '../../components/Callout.astro';
+
+{/* CodeLink goes at the top once the code is public. */}
+
+For a few posts my voice assistant lived on a $40 touchscreen on my desk. It taught me what mattered: the wake word, a fast cheap model, and skipping the model when I could. But I carry my phone everywhere. It is the computer that is already in my pocket. So I rebuilt the assistant as an iPhone app. I call it Radar.
+
+A phone is a capable client and a bad server. It can run the model and the tools all day, but it sleeps, it throttles background work, and it will not run quietly forever. Moving to the phone forced me to decide what belongs on the phone and what does not. The whole app follows that line.
+
+## One turn
+
+Here is one turn. I say "hey Radar". The phone hears the wake word. It transcribes what I say. A small model uses my tools to work out the answer. The phone speaks the answer back. Then it listens again.
+
+<Figure
+	label="A loop. Hey Radar wakes it on device, speech to text runs on device, a small model plus my tools works out the answer, an on-device voice speaks it back, and then it listens again."
+	caption="One turn. The wake word, the listening, and the speaking all run on the phone."
+>
+	<svg viewBox="0 0 828 186" xmlns="http://www.w3.org/2000/svg">
+		<defs><marker id="dg-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="context-stroke"/></marker></defs>
+		<path class="d-edge d-accent" d="M196 60 L224 60" marker-end="url(#dg-arrow)"/>
+		<path class="d-edge d-accent" d="M420 60 L446 60" marker-end="url(#dg-arrow)"/>
+		<path class="d-edge d-accent" d="M622 60 L648 60" marker-end="url(#dg-arrow)"/>
+		<path class="d-edge d-dash" d="M732 96 C732 156 106 156 106 96" marker-end="url(#dg-arrow)"/>
+		<text class="d-txt d-sub" x="419" y="176" text-anchor="middle" font-size="13">listens again</text>
+		<rect class="d-card d-accent" x="16" y="28" width="180" height="64" rx="11"/>
+		<text class="d-txt d-accent" x="106" y="54" text-anchor="middle" font-size="15">Hey Radar</text>
+		<text class="d-txt d-sub" x="106" y="73" text-anchor="middle" font-size="11.5">wake word, on device</text>
+		<rect class="d-card d-accent" x="228" y="28" width="192" height="64" rx="11"/>
+		<text class="d-txt d-accent" x="324" y="54" text-anchor="middle" font-size="15">I talk</text>
+		<text class="d-txt d-sub" x="324" y="73" text-anchor="middle" font-size="11.5">speech to text, on device</text>
+		<rect class="d-card" x="450" y="28" width="172" height="64" rx="11"/>
+		<text class="d-txt" x="536" y="54" text-anchor="middle" font-size="15">Small model</text>
+		<text class="d-txt d-sub" x="536" y="73" text-anchor="middle" font-size="11.5">plus my tools</text>
+		<rect class="d-card d-accent" x="650" y="28" width="164" height="64" rx="11"/>
+		<text class="d-txt d-accent" x="732" y="54" text-anchor="middle" font-size="15">It answers</text>
+		<text class="d-txt d-sub" x="732" y="73" text-anchor="middle" font-size="11.5">on-device voice</text>
+	</svg>
+</Figure>
+
+The wake word, the speech coming in, and the speech going out all run on the phone. Those parts need to be instant and private. Nothing I say leaves the phone until I address it.
+
+## What runs on the phone, and what phones home
+
+Almost all of it runs on the phone. The phone calls a small model directly, and every tool it uses lives on the phone too: my calendar, my inbox, my notes, my money, my location. It does not ship the question to a computer at home and wait for an answer. It does the work itself.
+
+<Figure
+	label="The phone runs the whole loop: wake word, speech, a small model it calls directly, and its tools for calendar, inbox, notes, money, and location. The only thing that leaves the phone is a capture stream that syncs logs, costs, and audio recordings home over Tailscale when a computer is reachable. Forge, on my always-on box, is a fallback the phone rarely hands an open-ended question to, and it answers back as a notification."
+	caption="The phone does the work. Home only keeps what it is sent: logs, costs, and audio."
+>
+	<svg viewBox="0 0 760 226" xmlns="http://www.w3.org/2000/svg">
+		<defs><marker id="dg-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="context-stroke"/></marker></defs>
+		<path class="d-edge d-accent" d="M262 100 C360 88 430 78 512 72" marker-end="url(#dg-arrow)"/>
+		<text class="d-txt d-sub" x="392" y="70" text-anchor="middle" font-size="13">capture syncs home</text>
+		<path class="d-edge d-dash" d="M262 128 C360 142 430 154 512 168" marker-end="url(#dg-arrow)"/>
+		<text class="d-txt d-sub" x="392" y="168" text-anchor="middle" font-size="13">delegate, rarely</text>
+		<rect class="d-card d-accent" x="36" y="78" width="226" height="74" rx="12"/>
+		<text class="d-txt d-accent" x="149" y="106" text-anchor="middle" font-size="15">On the phone</text>
+		<text class="d-txt d-sub" x="149" y="126" text-anchor="middle" font-size="11.5">wake, speech, the model,</text>
+		<text class="d-txt d-sub" x="149" y="142" text-anchor="middle" font-size="11.5">and every tool</text>
+		<rect class="d-card" x="514" y="38" width="210" height="64" rx="11"/>
+		<text class="d-txt" x="619" y="64" text-anchor="middle" font-size="14">Home computers</text>
+		<text class="d-txt d-sub" x="619" y="84" text-anchor="middle" font-size="11.5">keep logs, costs, audio</text>
+		<rect class="d-card" x="514" y="138" width="210" height="64" rx="11"/>
+		<text class="d-txt" x="619" y="164" text-anchor="middle" font-size="14">Forge on the box</text>
+		<text class="d-txt d-sub" x="619" y="184" text-anchor="middle" font-size="11.5">the hard questions</text>
+	</svg>
+</Figure>
+
+The model is the small, fast, cheap one from [an earlier post in this series](/blog/fast-cheap-model-voice-assistant/), and the phone calls it over the network like any other app. My own computers are not in the loop. The only thing that reaches them is capture, which the next section is about. And when a question is bigger than my own tools, the phone hands it to Forge, my agent on the box, and the answer comes back as a notification. That is the exception, not the path.
+
+<StatTable
+	caption="what runs where"
+	rows={[
+		{ label: 'On the phone', value: 'the whole loop', note: 'wake word, speech, the model call, and every tool' },
+		{ label: 'Phones home', value: 'logs, costs, audio', note: 'capture only, synced when a computer is reachable' },
+		{ label: 'Forge', value: 'the hard questions', note: 'a fallback on the box, when my own tools cannot answer' },
+	]}
+/>
+
+## Capture on the phone, sync home
+
+There is a second part to the split. The phone captures things my computers need later. It saves the audio of what I actually said, so I can train a voice model on how I talk. It logs where I have been without using much battery. It records what each paid model call costs. The phone writes all of it to a durable queue on disk. It sends the queue home when a computer is reachable.
+
+<Callout tone="key">
+Capture on the phone, sync home. It started as a way to move audio off the device. It became the pattern for the whole app. Nothing is lost when I am away from wifi. The queue catches up later.
+</Callout>
+
+## What is working
+
+Today Radar handles the useful things. It runs the voice loop from end to end on the phone. It reads my calendar, inbox, and notes through their tools. It tracks where I have been without draining the battery. It turns a push from Forge into a notification. It counts every paid call, so I know what a day of talking to it costs.
+
+## Why this shape
+
+I did not design this shape first and force it onto the phone. I started with the phone's rules. A phone can call a model and run my tools all day, but it sleeps, it throttles background work, and it cannot be trusted to hold and serve my data over time. So the phone does the work, and the things that must outlive a turn, my logs and costs and recordings, get pushed to a computer that is always on. Not because the phone cannot compute, but because it cannot be trusted to keep.
+
+That split also draws a line around what Radar can reach. The text my wife just sent sits on the other side of a wall the phone cannot cross. That wall is the next post.
