@@ -1,0 +1,119 @@
+---
+// A themed diagram (light/dark SVG) that opens in an in-page lightbox modal on click.
+// Usage: <Diagram name="harness-fastpath" alt="…" caption="…" />
+// expects /public/diagrams/<name>.light.svg and <name>.dark.svg
+interface Props {
+	name: string;
+	alt: string;
+	caption?: string;
+}
+const { name, alt, caption } = Astro.props;
+const light = `/diagrams/${name}.light.svg`;
+const dark = `/diagrams/${name}.dark.svg`;
+---
+
+<figure class="diagram">
+	<button type="button" class="diagram-zoom" data-light={light} data-alt={alt} aria-label="Enlarge diagram">
+		<picture>
+			<source srcset={dark} media="(prefers-color-scheme: dark)" />
+			<img src={light} alt={alt} loading="lazy" />
+		</picture>
+	</button>
+	{caption && <figcaption>{caption}</figcaption>}
+</figure>
+
+<script>
+	// One shared lightbox for every diagram on the page. Click a diagram to enlarge it on a
+	// white card over a dimmed page; click anywhere or press Escape to close. No dependencies.
+	(function () {
+		if ((window as any).__diagramLightbox) return;
+		(window as any).__diagramLightbox = true;
+
+		const overlay = document.createElement('div');
+		overlay.className = 'diagram-lightbox';
+		overlay.setAttribute('role', 'dialog');
+		overlay.setAttribute('aria-modal', 'true');
+		overlay.hidden = true;
+		const big = document.createElement('img');
+		big.className = 'lb-img';
+		overlay.appendChild(big);
+		document.body.appendChild(overlay);
+
+		let lastFocus: HTMLElement | null = null;
+		function open(btn: HTMLElement) {
+			big.src = btn.dataset.light || '';
+			big.alt = btn.dataset.alt || '';
+			overlay.hidden = false;
+			document.body.style.overflow = 'hidden';
+			lastFocus = document.activeElement as HTMLElement;
+			overlay.focus();
+		}
+		function close() {
+			overlay.hidden = true;
+			document.body.style.overflow = '';
+			if (lastFocus) lastFocus.focus();
+		}
+
+		document.addEventListener('click', function (e) {
+			const t = e.target as HTMLElement;
+			const btn = t.closest && (t.closest('.diagram-zoom') as HTMLElement | null);
+			if (btn) { e.preventDefault(); open(btn); return; }
+			if (!overlay.hidden && overlay.contains(t)) close();
+		});
+		document.addEventListener('keydown', function (e) {
+			if (e.key === 'Escape' && !overlay.hidden) close();
+		});
+	})();
+</script>
+
+<style>
+	.diagram {
+		margin: 1.5rem 0;
+	}
+	.diagram-zoom {
+		display: block;
+		width: 100%;
+		padding: 0;
+		border: 0;
+		background: none;
+		cursor: zoom-in;
+	}
+	.diagram-zoom img {
+		width: 100%;
+		height: auto;
+		display: block;
+		border: 1px solid rgb(var(--border));
+		border-radius: 12px;
+	}
+	.diagram figcaption {
+		text-align: center;
+		color: rgb(var(--gray));
+		font-size: 0.85em;
+		margin-top: 0.6rem;
+	}
+	/* overlay is appended to <body>, so it must be global, not component-scoped */
+	:global(.diagram-lightbox) {
+		position: fixed;
+		inset: 0;
+		z-index: 9999;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: 4vmin;
+		background: rgba(0, 0, 0, 0.85);
+		cursor: zoom-out;
+	}
+	:global(.diagram-lightbox[hidden]) {
+		display: none;
+	}
+	:global(.diagram-lightbox .lb-img) {
+		max-width: 96vw;
+		max-height: 92vh;
+		width: auto;
+		height: auto;
+		background: #fff;
+		border-radius: 12px;
+		padding: 1.2rem;
+		box-shadow: 0 12px 48px rgba(0, 0, 0, 0.5);
+	}
+</style>

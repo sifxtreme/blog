@@ -1,0 +1,59 @@
+---
+// A small aside for a point that should sit apart from the body: a takeaway, a
+// caveat, a heads-up. Matches the blog's warm-paper + one-accent design (no new
+// colors); tone is carried by the label and the accent rail, not by hue.
+//   <Callout tone="key">The one thing that matters is X.</Callout>
+//   <Callout tone="warn" title="The catch">Only do this if …</Callout>
+interface Props {
+	tone?: 'note' | 'key' | 'warn';
+	title?: string;
+}
+const { tone = 'note', title } = Astro.props;
+const fallback = tone === 'warn' ? 'Heads up' : tone === 'key' ? 'The point' : null;
+const label = title ?? fallback;
+---
+
+<aside class:list={['callout', `callout--${tone}`]}>
+	{label && <p class="callout__label">{label}</p>}
+	<div class="callout__body"><slot /></div>
+</aside>
+
+<style>
+	.callout {
+		margin: 1.75rem 0;
+		padding: 0.9rem 1.15rem;
+		border: 1px solid rgb(var(--border));
+		border-radius: 0.85rem;
+		background: rgb(var(--surface));
+		box-shadow: var(--box-shadow);
+	}
+	.callout--key,
+	.callout--warn {
+		border-left: 3px solid rgb(var(--accent));
+		background: rgba(var(--accent-rgb), 0.06);
+	}
+	.callout--warn {
+		/* a touch stronger so a caveat reads differently from a takeaway, same hue */
+		background: rgba(var(--accent-rgb), 0.1);
+	}
+	.callout__label {
+		margin: 0 0 0.35rem;
+		font-size: 0.72rem;
+		letter-spacing: 0.07em;
+		text-transform: uppercase;
+		font-weight: 700;
+		color: rgb(var(--accent-dark));
+	}
+	.callout--note .callout__label {
+		color: rgb(var(--gray));
+	}
+	.callout__body :global(p) {
+		margin: 0.5rem 0;
+	}
+	.callout__body :global(p:first-child) {
+		margin-top: 0;
+	}
+	.callout__body :global(p:last-child) {
+		margin-bottom: 0;
+	}
+</style>

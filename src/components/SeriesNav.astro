@@ -1,0 +1,104 @@
+---
+// Ties a set of posts into one series with a shared ethos. Two variants:
+//   variant="top"    — a slim kicker + the series thesis, framing the post
+//   variant="bottom" — the ordered list of every published part
+// The parts list is derived from the collection, so a new post with a matching
+// `series.name` joins automatically (and an unpublished draft never shows).
+//
+// To retitle the series: change `name` in each post's frontmatter AND the SERIES
+// key below. To reword the thesis: edit the `blurb` here (one place).
+import { getCollection } from 'astro:content';
+import { SERIES } from '../series';
+
+interface Props {
+	name: string;
+	part: number;
+	currentSlug: string;
+	variant?: 'top' | 'bottom';
+}
+const { name, part, currentSlug, variant = 'top' } = Astro.props;
+
+const meta = SERIES[name] ?? { blurb: '' };
+
+const parts = (await getCollection('blog'))
+	.filter((p) => p.data.series?.name === name)
+	.sort((a, b) => (a.data.series?.part ?? 0) - (b.data.series?.part ?? 0));
+const total = parts.length;
+---
+
+{
+	variant === 'top' ? (
+		<aside class="series series-top">
+			<div class="series-kicker">
+				{name} · part {part}
+			</div>
+			{meta.blurb && <p class="series-blurb">{meta.blurb}</p>}
+		</aside>
+	) : (
+		total > 1 && (
+			<aside class="series series-bottom">
+				<div class="series-kicker">More in “{name}”</div>
+				<ol>
+					{parts.map((p) => (
+						<li class={p.id === currentSlug ? 'here' : ''}>
+							{p.id === currentSlug ? (
+								<span>
+									{p.data.title} <em>you’re here</em>
+								</span>
+							) : (
+								<a href={`/blog/${p.id}/`}>{p.data.title}</a>
+							)}
+						</li>
+					))}
+				</ol>
+			</aside>
+		)
+	)
+}
+
+<style>
+	.series {
+		border: 1px solid rgb(var(--border));
+		border-radius: 12px;
+		padding: 0.9em 1.1em;
+	}
+	.series-top {
+		margin: 0 0 2em;
+		background: rgba(var(--gray), 0.05);
+	}
+	.series-bottom {
+		margin: 2.5em 0 0.5em;
+	}
+	.series-kicker {
+		font-size: 0.72rem;
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+		color: rgb(var(--gray));
+	}
+	.series-blurb {
+		margin: 0.5em 0 0;
+		color: rgb(var(--gray-dark));
+		font-size: 0.98rem;
+		line-height: 1.5;
+	}
+	.series-bottom ol {
+		margin: 0.7em 0 0;
+		padding-left: 1.3em;
+	}
+	.series-bottom li {
+		margin: 0.3em 0;
+		line-height: 1.4;
+	}
+	.series-bottom li.here {
+		color: rgb(var(--gray));
+	}
+	.series-bottom li.here em {
+		font-style: normal;
+		font-size: 0.78rem;
+		color: rgb(var(--gray));
+		border: 1px solid rgb(var(--border));
+		border-radius: 999px;
+		padding: 0.05em 0.5em;
+		margin-left: 0.35em;
+	}
+</style>

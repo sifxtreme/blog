@@ -12,6 +12,10 @@ const { date } = Astro.props;
 			year: 'numeric',
 			month: 'short',
 			day: 'numeric',
+			// pubDate is a date-only value stored as UTC midnight. Format it in UTC
+			// so it renders as the calendar date written, not shifted a day back by
+			// the build machine's timezone.
+			timeZone: 'UTC',
 		})
 	}
 </time>

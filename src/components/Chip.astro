@@ -1,0 +1,38 @@
+---
+// A small inline pill for a one-word status or label. Used to tag an option or a
+// row without a whole table: <Chip tone="accent">Works</Chip>. Palette-native
+// (accent or muted only) so it sits inside prose without shouting.
+interface Props {
+	tone?: 'accent' | 'muted';
+}
+const { tone = 'muted' } = Astro.props;
+---
+
+<span class:list={['chip', `chip--${tone}`]}><slot /></span>
+
+<style>
+	.chip {
+		display: inline-flex;
+		align-items: center;
+		font-size: 0.68rem;
+		font-weight: 700;
+		letter-spacing: 0.06em;
+		text-transform: uppercase;
+		line-height: 1.2;
+		padding: 0.15em 0.6em;
+		border-radius: 100px;
+		border: 1px solid;
+		vertical-align: 0.08em;
+		white-space: nowrap;
+	}
+	.chip--muted {
+		color: rgb(var(--gray));
+		border-color: rgb(var(--border));
+		background: rgb(var(--gray-light));
+	}
+	.chip--accent {
+		color: rgb(var(--accent-dark));
+		border-color: rgba(var(--accent-rgb), 0.35);
+		background: rgba(var(--accent-rgb), 0.1);
+	}
+</style>

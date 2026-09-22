@@ -1,0 +1,175 @@
+---
+// The diagram gallery / contact sheet. Renders EVERY hand-authored inline SVG diagram from the
+// blog posts, pulled straight from the .mdx at build time (so it can never drift from the posts),
+// each in the real Figure frame. Purpose: see the whole set together — spot the weak or inconsistent
+// ones, and use it as the copy-from reference library. Opens with a design-language legend.
+import BaseHead from '../components/BaseHead.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import Figure from '../components/Figure.astro';
+import { SITE_TITLE } from '../consts';
+
+const files = import.meta.glob('../content/blog/*.mdx', { query: '?raw', import: 'default', eager: true });
+
+function frontmatter(raw: string, key: string): string | undefined {
+	const m = raw.match(new RegExp(`^\\s*${key}:\\s*["']?([^"'\\n]+)["']?`, 'm'));
+	return m?.[1]?.trim();
+}
+
+function extract(raw: string) {
+	const title = frontmatter(raw, 'title') ?? 'Untitled';
+	const partRaw = raw.match(/\bpart:\s*(\d+)/)?.[1];
+	const part = partRaw ? Number(partRaw) : undefined;
+	const pubDate = frontmatter(raw, 'pubDate') ?? '';
+	const diagrams: { svg: string; caption: string }[] = [];
+	const svgRe = /<svg[\s\S]*?<\/svg>/g;
+	let m: RegExpExecArray | null;
+	while ((m = svgRe.exec(raw))) {
+		const before = raw.slice(0, m.index);
+		const caps = [...before.matchAll(/caption="([^"]*)"/g)];
+		diagrams.push({ svg: m[0], caption: caps.length ? caps[caps.length - 1][1] : '' });
+	}
+	return { title, part, pubDate, diagrams };
+}
+
+const posts = Object.entries(files)
+	.map(([path, raw]) => ({ slug: path.split('/').pop()!.replace(/\.mdx$/, ''), ...extract(raw as string) }))
+	.filter((p) => p.diagrams.length > 0)
+	.sort((a, b) => {
+		if (a.part != null && b.part != null) return a.part - b.part;
+		if (a.part != null) return -1;
+		if (b.part != null) return 1;
+		return a.pubDate.localeCompare(b.pubDate);
+	});
+
+const total = posts.reduce((n, p) => n + p.diagrams.length, 0);
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<BaseHead title={`Diagrams · ${SITE_TITLE}`} description="Every hand-authored diagram on the blog, in one place." />
+	</head>
+	<body>
+		<Header />
+		<main>
+			<header class="page-head">
+				<h1>Diagrams</h1>
+				<p>
+					Every hand-authored diagram on the blog, in one place — {total} across {posts.length} posts.
+					Pulled straight from the posts at build time. Click any to enlarge; use the theme toggle to
+					check both light and dark.
+				</p>
+			</header>
+
+			<section class="legend">
+				<h2>The design language</h2>
+				<Figure caption="The d-* vocabulary: a dense panel node, and the lane colors that carry meaning.">
+					<svg viewBox="0 0 900 300" xmlns="http://www.w3.org/2000/svg">
+						<defs>
+							<marker id="dg-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="context-stroke"/></marker>
+							<pattern id="dg-hatch" width="7" height="7" patternTransform="rotate(45)" patternUnits="userSpaceOnUse"><rect class="d-hatch-bg" width="7" height="7"/><line class="d-hatch-line" x1="0" y1="0" x2="0" y2="7"/></pattern>
+						</defs>
+
+						<!-- dense panel node -->
+						<rect class="d-card d-accent" x="24" y="34" width="326" height="236" rx="14"/>
+						<text class="d-head" x="46" y="66" font-size="15">Mac / always-on box</text>
+						<text class="d-txt d-sub" x="46" y="86" font-size="12">the brain, when home</text>
+						<line class="d-rule" x1="46" y1="100" x2="328" y2="100"/>
+						<text class="d-txt d-sub" x="46" y="126" font-size="12.5">· holds chat.db  (iMessage)</text>
+						<text class="d-txt d-sub" x="46" y="150" font-size="12.5">· WhatsApp linked session</text>
+						<text class="d-txt d-sub" x="46" y="174" font-size="12.5">· serves the notes index</text>
+						<text class="d-txt d-sub" x="46" y="198" font-size="12.5">· runs ask_forge  (async)</text>
+						<line class="d-rule" x1="46" y1="214" x2="328" y2="214"/>
+						<text class="d-txt d-good" x="46" y="240" font-size="12.5">→ box ~/radar-data (canonical)</text>
+						<text class="d-txt d-sub" x="187" y="262" text-anchor="middle" font-size="11">a dense panel: d-card + d-head + d-rule + list</text>
+
+						<!-- lanes -->
+						<path class="d-edge d-accent" d="M470 66 H700" marker-end="url(#dg-arrow)"/>
+						<text class="d-txt d-sub" x="470" y="54" font-size="12.5">primary / working path — d-accent</text>
+
+						<path class="d-edge d-good" d="M470 122 H700" marker-end="url(#dg-arrow)"/>
+						<text class="d-txt d-sub" x="470" y="110" font-size="12.5">a “works” lane — d-good</text>
+
+						<path class="d-edge d-bad d-dash" d="M470 186 H660"/>
+						<text class="d-mark d-bad" x="672" y="192" text-anchor="middle" font-size="19">✕</text>
+						<text class="d-txt d-sub" x="470" y="174" font-size="12.5">blocked / dead-end — d-bad + d-dash + ✕</text>
+
+						<path class="d-edge d-dash" d="M470 244 H700" marker-end="url(#dg-arrow)"/>
+						<text class="d-txt d-sub" x="470" y="232" font-size="12.5">neutral / secondary — d-edge + d-dash</text>
+
+						<rect class="d-wall d-bad" x="720" y="164" width="20" height="44" rx="4"/>
+						<text class="d-txt d-sub" x="768" y="190" font-size="11">barrier</text>
+					</svg>
+				</Figure>
+			</section>
+
+			{
+				posts.map((post) => (
+					<section class="post-group">
+						<h2>
+							<a href={`/blog/${post.slug}/`}>
+								{post.part != null && <span class="part">Part {post.part}</span>}
+								{post.title}
+							</a>
+						</h2>
+						{post.diagrams.map((d) => (
+							<Figure caption={d.caption}>
+								<Fragment set:html={d.svg} />
+							</Figure>
+						))}
+					</section>
+				))
+			}
+		</main>
+		<Footer />
+	</body>
+
+	<style>
+		.page-head {
+			padding: 1em 0 2em;
+			border-bottom: 1px solid rgb(var(--border));
+			margin-bottom: 1.5em;
+		}
+		.page-head h1 {
+			font-size: 2.4rem;
+			margin-bottom: 0.25em;
+		}
+		.page-head p {
+			color: rgb(var(--gray));
+			margin: 0;
+			font-size: 1.05rem;
+			max-width: 62ch;
+			line-height: 1.55;
+		}
+		.legend {
+			margin-bottom: 2.5em;
+			padding-bottom: 1.5em;
+			border-bottom: 1px solid rgb(var(--border));
+		}
+		.post-group {
+			margin: 2.4em 0;
+		}
+		h2 {
+			font-size: 0.8rem;
+			text-transform: uppercase;
+			letter-spacing: 0.12em;
+			color: rgb(var(--gray));
+			margin: 0 0 0.4em;
+		}
+		.post-group h2 a {
+			color: rgb(var(--gray));
+			text-decoration: none;
+		}
+		.post-group h2 a:hover {
+			color: var(--accent);
+		}
+		.part {
+			color: var(--accent);
+			margin-right: 0.6em;
+		}
+		.legend h2 {
+			color: var(--accent);
+		}
+	</style>
+</html>

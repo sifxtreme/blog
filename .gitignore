@@ -34,3 +34,6 @@ IDEAS.md
 # built per deploy by scripts/build-designs.mjs
 .design-builds/
 functions/design-pages.generated.js
+
+# local Pages dev cache (wrangler pages dev)
+.wrangler/

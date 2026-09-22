@@ -1,0 +1,41 @@
+---
+// A small self-hosted video player. Native controls (accessible, no JS, CSP-safe),
+// themed to the blog, with a poster, a portrait-friendly max width, an optional
+// caption, and a download fallback. Usage:
+//   <Video src="/media/foo.mp4" poster="/media/foo.jpg" maxWidth="340px" caption="…" />
+interface Props {
+	src: string;
+	poster?: string;
+	caption?: string;
+	maxWidth?: string; // "340px" for a portrait clip, "100%" (default) for landscape
+}
+const { src, poster, caption, maxWidth = '100%' } = Astro.props;
+---
+
+<figure class="video">
+	<video controls playsinline preload="none" poster={poster} style={`max-width:${maxWidth}`}>
+		<source src={src} type="video/mp4" />
+		Your browser can't play this video. <a href={src}>Download it</a>.
+	</video>
+	{caption && <figcaption>{caption}</figcaption>}
+</figure>
+
+<style>
+	.video {
+		margin: 1.5rem 0;
+	}
+	.video video {
+		width: 100%;
+		display: block;
+		margin: 0 auto;
+		background: #000;
+		border: 1px solid rgb(var(--border));
+		border-radius: 12px;
+	}
+	.video figcaption {
+		text-align: center;
+		color: rgb(var(--gray));
+		font-size: 0.85em;
+		margin-top: 0.6rem;
+	}
+</style>

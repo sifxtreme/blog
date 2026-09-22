@@ -1,0 +1,213 @@
+---
+// A hand-authored inline SVG diagram, framed and themed like the rest of the blog. Author the SVG
+// inside <Figure>…</Figure> using the diagram DESIGN LANGUAGE below — colors come from the blog
+// tokens, so every diagram themes light/dark automatically and uses the real page font. No render
+// step, no <img>, no foreignObject (so none of the image/XML failure modes).
+//
+//   class="d-card"            a node box            (compose with d-accent | d-dim)
+//   class="d-edge"            a connector           (compose with d-accent, d-dash)
+//   class="d-txt"             a label               (compose with d-sub, d-accent)
+//   class="d-mark"            a glyph like ✕
+//   marker-end="url(#dg-arrow)"   arrowhead that matches its edge color (context-stroke)
+//
+// Include this <defs> once inside each SVG for arrowheads:
+//   <defs><marker id="dg-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7"
+//     orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="context-stroke"/></marker></defs>
+interface Props {
+	caption?: string;
+	label?: string; // accessible description of the whole diagram
+}
+const { caption, label } = Astro.props;
+---
+
+<figure class="svgfig">
+	<div class="svgfig__frame" role="img" aria-label={label} tabindex="0">
+		<slot />
+	</div>
+	{caption && <figcaption>{caption}</figcaption>}
+</figure>
+
+<style>
+	.svgfig {
+		margin: 1.9rem 0;
+	}
+	.svgfig__frame {
+		border: 1px solid rgb(var(--border));
+		border-radius: 12px;
+		background: rgb(var(--surface));
+		box-shadow: var(--box-shadow);
+		padding: 1.4rem 1.2rem;
+		overflow-x: auto;
+		cursor: zoom-in;
+	}
+	.svgfig :global(svg) {
+		display: block;
+		width: 100%;
+		height: auto;
+		max-width: 100%;
+	}
+	.svgfig figcaption {
+		text-align: center;
+		color: rgb(var(--gray));
+		font-size: 0.85em;
+		margin-top: 0.65rem;
+	}
+
+	/* ---- the diagram design language (theme-wired to the blog tokens) ---- */
+	.svgfig :global(.d-card) {
+		fill: rgb(var(--surface));
+		stroke: rgb(var(--gray));
+		stroke-width: 1.5;
+		filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.05)) drop-shadow(0 5px 11px rgba(0, 0, 0, 0.06));
+	}
+	.svgfig :global(.d-card.d-accent) {
+		fill: rgba(var(--accent-rgb), 0.1);
+		stroke: var(--accent);
+		stroke-width: 2;
+		filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.05)) drop-shadow(0 4px 14px rgba(var(--accent-rgb), 0.25));
+	}
+	.svgfig :global(.d-card.d-dim) {
+		fill: rgb(var(--gray-light));
+		stroke: rgb(var(--border));
+		filter: none;
+	}
+	/* a hatched barrier (the iOS wall): texture reads as "you cannot pass" */
+	.svgfig :global(.d-wall) { fill: url(#dg-hatch); stroke: rgb(var(--gray)); stroke-width: 1.5; }
+	.svgfig :global(.d-hatch-bg) { fill: rgb(var(--gray-light)); }
+	.svgfig :global(.d-hatch-line) { stroke: rgb(var(--gray)); stroke-width: 1.2; opacity: 0.7; }
+	/* line icons inside nodes */
+	.svgfig :global(.d-icon) { fill: none; stroke: rgb(var(--gray)); stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+	.svgfig :global(.d-icon.d-accent) { stroke: var(--accent); }
+	.svgfig :global(.d-icon.d-ink) { stroke: rgb(var(--black)); }
+	.svgfig :global(.d-edge) {
+		stroke: rgb(var(--gray));
+		stroke-width: 2;
+		fill: none;
+	}
+	.svgfig :global(.d-edge.d-accent) {
+		stroke: var(--accent);
+		stroke-width: 2.5;
+	}
+	.svgfig :global(.d-dash) {
+		stroke-dasharray: 6 5;
+	}
+	.svgfig :global(.d-txt) {
+		fill: rgb(var(--black));
+		font-family: var(--font-atkinson), system-ui, sans-serif;
+		font-weight: 700;
+	}
+	.svgfig :global(.d-sub) {
+		fill: rgb(var(--gray));
+		font-weight: 400;
+	}
+	.svgfig :global(.d-txt.d-accent) {
+		fill: var(--accent-dark);
+	}
+	.svgfig :global(.d-mark) {
+		fill: rgb(var(--gray));
+		font-family: var(--font-atkinson), sans-serif;
+		font-weight: 700;
+	}
+
+	/* ---- semantic status lanes: color a lane/node by MEANING (works / blocked). A functional
+	   scale, deliberately separate from the brand accent. Compose like d-accent. ---- */
+	.svgfig :global(.d-edge.d-good) { stroke: var(--good); stroke-width: 2.5; }
+	.svgfig :global(.d-edge.d-bad) { stroke: var(--bad); stroke-width: 2.5; }
+	.svgfig :global(.d-card.d-good) { stroke: var(--good); fill: rgba(var(--good-rgb), 0.1); }
+	.svgfig :global(.d-card.d-bad) { stroke: var(--bad); fill: rgba(var(--bad-rgb), 0.1); }
+	.svgfig :global(.d-icon.d-good) { stroke: var(--good); }
+	.svgfig :global(.d-icon.d-bad) { stroke: var(--bad); }
+	.svgfig :global(.d-txt.d-good) { fill: var(--good); }
+	.svgfig :global(.d-txt.d-bad) { fill: var(--bad); }
+	.svgfig :global(.d-mark.d-good) { fill: var(--good); }
+	.svgfig :global(.d-mark.d-bad) { fill: var(--bad); }
+	.svgfig :global(.d-wall.d-bad) { stroke: var(--bad); }
+
+	/* ---- dense panel node: a header + a divider (d-rule) + a real list of contents, so a node
+	   carries information instead of just a name. Compose d-card + d-head + d-rule + d-txt/d-sub. ---- */
+	.svgfig :global(.d-rule) { stroke: rgb(var(--border)); stroke-width: 1; }
+	.svgfig :global(.d-head) {
+		fill: var(--accent-dark);
+		font-family: var(--font-atkinson), system-ui, sans-serif;
+		font-weight: 700;
+		letter-spacing: 0.04em;
+	}
+</style>
+
+<script>
+	// Click any diagram to enlarge it on a card over a dimmed page (clones the inline SVG, so it
+	// scales crisply). One shared overlay per page; click anywhere or press Escape to close.
+	(function () {
+		if ((window as any).__svgfigLB) return;
+		(window as any).__svgfigLB = true;
+		const overlay = document.createElement('div');
+		overlay.className = 'svgfig-lightbox';
+		overlay.hidden = true;
+		overlay.setAttribute('role', 'dialog');
+		overlay.setAttribute('aria-modal', 'true');
+		const card = document.createElement('div');
+		card.className = 'svgfig-lb-card';
+		overlay.appendChild(card);
+		document.body.appendChild(overlay);
+		let last: HTMLElement | null = null;
+		function open(frame: HTMLElement) {
+			const svg = frame.querySelector('svg');
+			if (!svg) return;
+			card.innerHTML = '';
+			card.appendChild(svg.cloneNode(true));
+			overlay.hidden = false;
+			document.body.style.overflow = 'hidden';
+			last = document.activeElement as HTMLElement;
+			overlay.focus();
+		}
+		function close() {
+			overlay.hidden = true;
+			document.body.style.overflow = '';
+			card.innerHTML = '';
+			if (last) last.focus();
+		}
+		document.addEventListener('click', (e) => {
+			const t = e.target as HTMLElement;
+			const frame = t.closest && (t.closest('.svgfig__frame') as HTMLElement | null);
+			if (frame) {
+				open(frame);
+				return;
+			}
+			if (!overlay.hidden && overlay.contains(t)) close();
+		});
+		document.addEventListener('keydown', (e) => {
+			if (e.key === 'Escape' && !overlay.hidden) close();
+		});
+	})();
+</script>
+
+<style is:global>
+	.svgfig-lightbox {
+		position: fixed;
+		inset: 0;
+		z-index: 9999;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: 4vmin;
+		background: rgba(0, 0, 0, 0.7);
+		cursor: zoom-out;
+	}
+	.svgfig-lightbox[hidden] {
+		display: none;
+	}
+	.svgfig-lb-card {
+		background: rgb(var(--surface));
+		border-radius: 14px;
+		padding: 2rem;
+		max-width: 96vw;
+		max-height: 92vh;
+		box-shadow: 0 12px 48px rgba(0, 0, 0, 0.5);
+	}
+	.svgfig-lb-card svg {
+		width: auto;
+		height: auto;
+		max-width: 90vw;
+		max-height: 84vh;
+	}
+</style>

@@ -11,6 +11,13 @@
 	--accent-dark: #c2410c;
 	--accent-rgb: 234, 88, 12;
 
+	/* Diagram status scale — a functional works/blocked pair, distinct from the brand accent.
+	   Used ONLY inside diagrams (d-good / d-bad) to color a lane by meaning. Not brand palette. */
+	--good: #2f8f5b;
+	--good-rgb: 47, 143, 91;
+	--bad: #c4443c;
+	--bad-rgb: 196, 68, 60;
+
 	--black: 18, 18, 22; /* primary text / headings (flips light in dark mode) */
 	--gray: 110, 110, 122; /* muted text */
 	--gray-light: 233, 231, 226; /* subtle fills, inline code bg */
@@ -31,6 +38,11 @@
 		--accent-dark: #fdba74;
 		--accent-rgb: 251, 146, 60;
 
+		--good: #5cbd82;
+		--good-rgb: 92, 189, 130;
+		--bad: #e5776b;
+		--bad-rgb: 229, 119, 107;
+
 		--black: 240, 240, 245;
 		--gray: 148, 148, 160;
 		--gray-light: 36, 36, 43;
@@ -48,6 +60,11 @@
 	--accent: #fb923c;
 	--accent-dark: #fdba74;
 	--accent-rgb: 251, 146, 60;
+
+	--good: #5cbd82;
+	--good-rgb: 92, 189, 130;
+	--bad: #e5776b;
+	--bad-rgb: 229, 119, 107;
 
 	--black: 240, 240, 245;
 	--gray: 148, 148, 160;
