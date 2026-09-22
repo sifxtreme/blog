@@ -1,0 +1,10 @@
+# Old/renamed slugs that were shared publicly before the post was renamed.
+# Without these they serve the 200 fallback page (blank), not a post.
+# See cerebro-prds/agent-docs/CONTENT_SYSTEM.md — "unpublished URL still returns 200".
+
+# Clean rename: -with-you was the draft slug, -with-them shipped.
+/blog/something-that-disagrees-with-you/  /blog/something-that-disagrees-with-them/  301
+
+# No current equivalent on disk or in the sitemap — land people on the post list, not the fallback.
+/blog/claude-md-distrusts-everything-except-me/  /blog/  301
+/blog/it-searched-my-email-for-my-notes/  /blog/  301
