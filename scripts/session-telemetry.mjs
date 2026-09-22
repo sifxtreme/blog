@@ -43,18 +43,10 @@ const fmtPT = (ms) =>
       });
 
 const tsOf = (o) => (o.timestamp ? Date.parse(o.timestamp) : null);
-const bashCmds = (o) => {
-  const out = [];
-  if (o.type !== 'assistant') return out;
-  for (const c of o.message?.content || []) {
-    if (c?.type === 'tool_use' && c.name === 'Bash') out.push(c.input?.command || '');
-  }
-  return out;
-};
-
 // One scan: gather this post's edit timestamps (per file) and every deploy time.
 const editByFile = new Map();
-const deploys = [];
+const deployCalls = new Map(); // tool_use id -> timestamp
+const failedCalls = new Set(); // tool_use ids whose result was an error (rejected or failed)
 for (const file of files) {
   const raw = fs.readFileSync(path.join(DIR, file), 'utf8');
   const hasSlug = raw.includes(slug);
@@ -76,11 +68,19 @@ for (const file of files) {
           }
         }
       }
-      for (const cmd of bashCmds(o)) if (DEPLOY_RE.test(cmd)) deploys.push(ts);
+      for (const c of o.message?.content || []) {
+        if (c?.type === 'tool_use' && c.name === 'Bash' && DEPLOY_RE.test(c.input?.command || '')) deployCalls.set(c.id, ts);
+      }
+    } else if (o.type === 'user') {
+      for (const c of Array.isArray(o.message?.content) ? o.message.content : []) {
+        if (c?.type === 'tool_result' && c.is_error) failedCalls.add(c.tool_use_id);
+      }
     }
   }
 }
 if (!editByFile.size) { console.log(`No session edited "${slug}".`); process.exit(0); }
+// A deploy counts only if its command actually ran: a rejected or failed call published nothing.
+const deploys = [...deployCalls].filter(([id]) => !failedCalls.has(id)).map(([, ts]) => ts);
 deploys.sort((a, b) => a - b);
 
 // Drafting session = the one that first created the file.
