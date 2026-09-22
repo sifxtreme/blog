@@ -8,3 +8,6 @@
 # No current equivalent on disk or in the sitemap — land people on the post list, not the fallback.
 /blog/claude-md-distrusts-everything-except-me/  /blog/  301
 /blog/it-searched-my-email-for-my-notes/  /blog/  301
+
+# Renamed after publish (title change).
+/blog/my-blog-is-a-receipt-now/  /blog/post-opus-5-5-fresh-design-like-a-receipt/  301

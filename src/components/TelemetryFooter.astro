@@ -18,7 +18,9 @@ interface Props {
 	aiUsage: string;
 }
 const { telemetry: t, aiUsage } = Astro.props;
-const verb = aiUsage === 'ai-written' ? 'Written by' : 'Written with';
+// Hand-written and dictated posts: Claude only shipped them, it didn't write them.
+const verb =
+	aiUsage === 'ai-written' ? 'Written by' : aiUsage === 'assisted' ? 'Written with' : 'Published with';
 const live =
 	t.liveAfterMin < 1
 		? 'within a minute of starting'
