@@ -1,0 +1,361 @@
+---
+// Receipt design — post layout. Same props and the same parts as the classic layout
+// (badges, problem, series nav, share, telemetry footer); the sheet is paper on the mat,
+// with the build telemetry taped on as a receipt stub.
+import { Image } from 'astro:assets';
+import type { CollectionEntry } from 'astro:content';
+import AIBadge from '../../components/AIBadge.astro';
+import BaseHead from '../../components/BaseHead.astro';
+import CopyForLLM from '../../components/CopyForLLM.astro';
+import Footer from '../../components/Footer.astro';
+import FormattedDate from '../../components/FormattedDate.astro';
+import Header from '../../components/Header.astro';
+import PangramBadge from '../../components/PangramBadge.astro';
+import SeriesNav from '../../components/SeriesNav.astro';
+import ShareButtons from '../../components/ShareButtons.astro';
+import TelemetryFooter from '../../components/TelemetryFooter.astro';
+
+type Props = CollectionEntry<'blog'>['data'] & {
+	ogImagePath?: string;
+	slug?: string;
+	body?: string;
+};
+
+const {
+	title,
+	description,
+	problem,
+	pubDate,
+	updatedDate,
+	heroImage,
+	aiUsage,
+	tags,
+	link,
+	telemetry,
+	pangram,
+	series,
+	ogImagePath,
+	slug,
+	body,
+} = Astro.props;
+const linkHost = link ? new URL(link).hostname.replace(/^www\./, '') : null;
+const canonicalUrl = slug ? new URL(`/blog/${slug}/`, Astro.site).href : undefined;
+// Receipt number: the publish date, MMDD, like the mockup's "#0731".
+const receiptNo = `${String(pubDate.getUTCMonth() + 1).padStart(2, '0')}${String(pubDate.getUTCDate()).padStart(2, '0')}`;
+---
+
+<html lang="en">
+	<head>
+		<BaseHead title={title} description={description} ogImagePath={ogImagePath} />
+	</head>
+
+	<body>
+		<Header />
+		<main class="r-post">
+			<article class="sheet" data-usage={aiUsage} data-has-stub={telemetry ? 'true' : 'false'}>
+				{tags && tags.length > 0 && (
+					<div class="tabs" aria-hidden="true">
+						{tags.slice(0, 3).map((t) => <span class="tab">{t}</span>)}
+					</div>
+				)}
+				{
+					telemetry && (
+						<aside class="stub" aria-label="Build receipt">
+							<span class="r-tape pink" aria-hidden="true" />
+							<div class="stub-title">RECEIPT #{receiptNo}</div>
+							<hr class="r-dash" />
+							<div class="kv"><span>model</span><span>{telemetry.model}</span></div>
+							<div class="kv"><span>turns</span><span>{telemetry.turns}</span></div>
+							<div class="kv"><span>tool calls</span><span>{telemetry.toolCalls}</span></div>
+							<div class="kv"><span>live after</span><span>{telemetry.liveAfterMin}m</span></div>
+							<div class="kv"><span>redeploys</span><span>{telemetry.redeploys}</span></div>
+							{
+								pangram && (
+									<>
+										<hr class="r-dash" />
+										<div>pangram: {pangram.verdict}</div>
+										<div class="meter" aria-hidden="true">
+											<i style={`width:${pangram.human}%`} />
+											<b />
+										</div>
+										<div class="kv">
+											<span class="h">human {pangram.human}%</span>
+											<span class="a">ai {pangram.ai}%</span>
+										</div>
+									</>
+								)
+							}
+						</aside>
+					)
+				}
+
+				{
+					heroImage && (
+						<div class="hero-image">
+							<Image width={1020} height={510} src={heroImage} alt="" />
+						</div>
+					)
+				}
+
+				<header class="title">
+					<div class="meta">
+						<FormattedDate date={pubDate} />
+						<AIBadge usage={aiUsage} />
+						<PangramBadge pangram={pangram} />
+						{
+							updatedDate && (
+								<span class="last-updated-on">
+									Updated <FormattedDate date={updatedDate} />
+								</span>
+							)
+						}
+					</div>
+					<h1>{title}</h1>
+					{
+						link && (
+							<a class="source-link" href={link} target="_blank" rel="noopener">
+								↗ Read the original on {linkHost}
+							</a>
+						)
+					}
+					{
+						body && canonicalUrl && (
+							<div class="copy-slot">
+								<CopyForLLM title={title} description={description} url={canonicalUrl} body={body} />
+							</div>
+						)
+					}
+				</header>
+
+				<div class="prose">
+					{
+						problem && (
+							<aside class="problem">
+								<span class="problem__label">The problem</span>
+								<p class="problem__text">{problem}</p>
+							</aside>
+						)
+					}
+					{series && slug && <SeriesNav name={series.name} part={series.part} currentSlug={slug} variant="top" />}
+					<slot />
+					{series && slug && <SeriesNav name={series.name} part={series.part} currentSlug={slug} variant="bottom" />}
+					{canonicalUrl && <ShareButtons title={title} url={canonicalUrl} />}
+					{telemetry && <TelemetryFooter telemetry={telemetry} aiUsage={aiUsage} />}
+				</div>
+			</article>
+		</main>
+		<Footer />
+	</body>
+</html>
+
+<style>
+	main.r-post {
+		background: none;
+		box-shadow: none;
+		padding: 0;
+		width: 820px;
+		max-width: calc(100% - 2em);
+		margin: 4em auto 2em;
+	}
+	.sheet {
+		position: relative;
+		background: var(--paper);
+		box-shadow: var(--sheet-shadow);
+		padding: 56px 64px 56px;
+	}
+	/* the colour strip along the top: which way this post was made */
+	.sheet::before {
+		content: '';
+		position: absolute;
+		top: 0;
+		left: 0;
+		right: 0;
+		height: 8px;
+		background: var(--as);
+	}
+	.sheet[data-usage='handwritten']::before { background: var(--hw); }
+	.sheet[data-usage='dictated']::before { background: var(--di); }
+	.sheet[data-usage='ai-written']::before { background: var(--ai); }
+
+	/* tags as index tabs sticking out of the left edge */
+	.tabs {
+		position: absolute;
+		left: -34px;
+		top: 80px;
+		display: flex;
+		flex-direction: column;
+		gap: 14px;
+	}
+	.tab {
+		font: 800 11px var(--mono);
+		letter-spacing: 0.1em;
+		text-transform: uppercase;
+		padding: 10px 8px;
+		writing-mode: vertical-rl;
+		transform: rotate(180deg);
+		color: #222;
+		box-shadow: -3px 3px 8px rgba(0, 0, 0, 0.2);
+		background: #fde047;
+	}
+	.tab:nth-child(2) { background: #7dd3fc; }
+	.tab:nth-child(3) { background: #f9a8d4; }
+
+	/* the receipt stub */
+	.stub {
+		position: absolute;
+		top: -26px;
+		right: 36px;
+		width: 224px;
+		background: var(--stub);
+		padding: 16px 16px 18px;
+		font: 11px/1.6 var(--mono);
+		color: rgb(var(--gray-dark));
+		transform: rotate(3deg);
+		box-shadow: 0 10px 24px -8px rgba(0, 0, 0, 0.35);
+		z-index: 2;
+	}
+	.stub .r-tape {
+		top: -10px;
+		left: 50%;
+		width: 80px;
+		height: 22px;
+		margin-left: -40px;
+		transform: rotate(-4deg);
+	}
+	.stub .r-dash {
+		margin: 8px 0;
+		border-color: var(--stub-rule);
+	}
+	.stub-title {
+		text-align: center;
+		font-weight: 800;
+		color: rgb(var(--black));
+	}
+	.kv {
+		display: flex;
+		justify-content: space-between;
+		gap: 8px;
+	}
+	.kv span:last-child {
+		text-align: right;
+		overflow-wrap: anywhere;
+	}
+	.kv .h { color: var(--hw); }
+	.kv .a { color: var(--ai); }
+	.meter {
+		display: flex;
+		height: 10px;
+		margin: 6px 0;
+		border-radius: 5px;
+		overflow: hidden;
+	}
+	.meter i { background: var(--hw); }
+	.meter b { flex: 1; background: var(--ai); }
+
+	.hero-image img {
+		display: block;
+		width: 100%;
+		height: auto;
+		margin: 0 0 1.5em;
+	}
+	.title {
+		margin-bottom: 1.5em;
+	}
+	.sheet[data-has-stub='true'] .title {
+		padding-right: 240px;
+		min-height: 230px;
+	}
+	.meta {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 0.6em;
+		color: rgb(var(--gray));
+		font: 12px var(--mono);
+		letter-spacing: 0.06em;
+		text-transform: uppercase;
+	}
+	.last-updated-on {
+		font-style: italic;
+	}
+	.title h1 {
+		font: 800 2.5rem/1.08 var(--mono);
+		letter-spacing: -0.03em;
+		margin: 0.4em 0 0.4em;
+		color: rgb(var(--black));
+	}
+	.source-link {
+		display: inline-block;
+		font: 600 14px var(--mono);
+	}
+	.copy-slot {
+		margin-top: 0.8em;
+	}
+	.prose {
+		max-width: 660px;
+		color: rgb(var(--gray-dark));
+	}
+	.prose :global(h2),
+	.prose :global(h3) {
+		font-family: var(--mono);
+		color: rgb(var(--black));
+	}
+	.prose :global(h2)::before {
+		content: '## ';
+		color: var(--ai);
+	}
+	.prose :global(h3)::before {
+		content: '### ';
+		color: var(--as);
+	}
+	.problem {
+		margin: 0 0 1.8em;
+		padding: 0.9em 1.1em;
+		background: #fde047;
+		color: #222;
+		box-shadow: 3px 4px 10px rgba(0, 0, 0, 0.15);
+		transform: rotate(-0.6deg);
+	}
+	.problem__label {
+		display: block;
+		font: 800 11px var(--mono);
+		letter-spacing: 0.1em;
+		text-transform: uppercase;
+		margin-bottom: 0.3em;
+	}
+	.problem__text {
+		margin: 0;
+		font-size: 1.05rem;
+		line-height: 1.5;
+	}
+
+	@media (max-width: 860px) {
+		.tabs {
+			display: none;
+		}
+	}
+	@media (max-width: 720px) {
+		main.r-post {
+			margin-top: 2.5em;
+			width: calc(100% - 1.2em);
+		}
+		.sheet {
+			padding: 40px 18px 32px;
+		}
+		.stub {
+			position: relative;
+			top: auto;
+			right: auto;
+			width: auto;
+			margin: -10px 0 26px;
+			transform: rotate(1deg);
+		}
+		.sheet[data-has-stub='true'] .title {
+			padding-right: 0;
+			min-height: 0;
+		}
+		.title h1 {
+			font-size: 1.8rem;
+		}
+	}
+</style>

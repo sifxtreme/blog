@@ -185,6 +185,40 @@ const SOCIALS = {
 			font-size: 0.9rem;
 		}
 	}
+
+	/* ---- receipt design (DESIGN in consts.ts): text printed straight onto the mat ---- */
+	:global(html[data-design='receipt']) header {
+		background: rgba(0, 0, 0, 0.18);
+		border-bottom: 1px dashed rgba(255, 255, 255, 0.18);
+		font-family: var(--mono);
+	}
+	:global(html[data-design='receipt']) .site-title,
+	:global(html[data-design='receipt']) nav a,
+	:global(html[data-design='receipt']) .social-links a,
+	:global(html[data-design='receipt']) .theme-toggle {
+		color: var(--mat-ink);
+	}
+	:global(html[data-design='receipt']) .internal-links :global(a.active) {
+		color: #fff;
+		border-bottom-color: #fde047;
+	}
+	:global(html[data-design='receipt']) .internal-links a.cta,
+	:global(html[data-design='receipt']) .site-title:hover,
+	:global(html[data-design='receipt']) nav a:hover,
+	:global(html[data-design='receipt']) .social-links a:hover,
+	:global(html[data-design='receipt']) .theme-toggle:hover {
+		color: #fde047;
+	}
+	/* the mono face is wider than Atkinson; tighten the nav so it fits a phone */
+	@media (max-width: 720px) {
+		:global(html[data-design='receipt']) .site-title,
+		:global(html[data-design='receipt']) .internal-links :global(a),
+		:global(html[data-design='receipt']) .internal-links a.cta {
+			font-size: 0.8rem;
+			padding-left: 0.35em;
+			padding-right: 0.35em;
+		}
+	}
 </style>
 <script is:inline>
 	document

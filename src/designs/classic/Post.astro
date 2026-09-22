@@ -1,0 +1,247 @@
+---
+import { Image } from 'astro:assets';
+import type { CollectionEntry } from 'astro:content';
+import AIBadge from '../../components/AIBadge.astro';
+import PangramBadge from '../../components/PangramBadge.astro';
+import BaseHead from '../../components/BaseHead.astro';
+import CopyForLLM from '../../components/CopyForLLM.astro';
+import Footer from '../../components/Footer.astro';
+import FormattedDate from '../../components/FormattedDate.astro';
+import Header from '../../components/Header.astro';
+import TelemetryFooter from '../../components/TelemetryFooter.astro';
+import ShareButtons from '../../components/ShareButtons.astro';
+import SeriesNav from '../../components/SeriesNav.astro';
+
+type Props = CollectionEntry<'blog'>['data'] & {
+	ogImagePath?: string;
+	slug?: string;
+	body?: string;
+};
+
+const {
+	title,
+	description,
+	problem,
+	pubDate,
+	updatedDate,
+	heroImage,
+	aiUsage,
+	tags,
+	link,
+	telemetry,
+	pangram,
+	series,
+	ogImagePath,
+	slug,
+	body,
+} = Astro.props;
+const linkHost = link ? new URL(link).hostname.replace(/^www\./, '') : null;
+const canonicalUrl = slug
+	? new URL(`/blog/${slug}/`, Astro.site).href
+	: undefined;
+---
+
+<html lang="en">
+	<head>
+		<BaseHead
+			title={title}
+			description={description}
+			ogImagePath={ogImagePath}
+		/>
+		<style>
+			main {
+				width: calc(100% - 2em);
+				max-width: 100%;
+				margin: 0;
+			}
+			.hero-image {
+				width: 100%;
+			}
+			.hero-image img {
+				display: block;
+				margin: 0 auto 1em;
+				border-radius: 12px;
+				box-shadow: var(--box-shadow);
+			}
+			.prose {
+				width: 680px;
+				max-width: calc(100% - 2em);
+				margin: auto;
+				padding: 1em;
+				color: rgb(var(--gray-dark));
+			}
+			.title {
+				margin-bottom: 0.5em;
+				padding: 1em 0 0;
+				line-height: 1.1;
+			}
+			.title h1 {
+				margin: 0.35em 0 0.3em 0;
+				font-size: 2.6rem;
+			}
+			.meta {
+				display: flex;
+				flex-wrap: wrap;
+				align-items: center;
+				gap: 0.75em;
+				color: rgb(var(--gray));
+				font-size: 0.9rem;
+			}
+			.last-updated-on {
+				font-style: italic;
+			}
+			/* Push the Copy-for-LLM button to the right of the meta row on wide
+			   screens; it wraps under on narrow ones. */
+			.copy-slot {
+				margin-left: auto;
+			}
+			.tags {
+				display: flex;
+				flex-wrap: wrap;
+				gap: 0.5em;
+				margin-top: 1em;
+			}
+			.tag {
+				font-size: 0.78rem;
+				color: rgb(var(--gray));
+				border: 1px solid rgb(var(--border));
+				border-radius: 999px;
+				padding: 0.2em 0.7em;
+			}
+			.source-link {
+				display: inline-block;
+				margin-top: 1em;
+				font-weight: 600;
+				font-size: 0.95rem;
+			}
+			.title hr {
+				margin: 1.75em 0 0;
+			}
+			.problem {
+				margin: 1.75em 0 0.5em;
+				padding: 0.85em 1.1em;
+				border-left: 3px solid rgb(var(--accent));
+				background: rgba(var(--accent-rgb), 0.06);
+				border-radius: 0 8px 8px 0;
+			}
+			.problem__label {
+				display: block;
+				font-size: 0.72rem;
+				letter-spacing: 0.07em;
+				text-transform: uppercase;
+				font-weight: 700;
+				color: rgb(var(--accent-dark));
+				margin-bottom: 0.2em;
+			}
+			.problem__text {
+				margin: 0;
+				font-size: 1.05rem;
+				line-height: 1.5;
+				color: rgb(var(--black));
+			}
+			@media (max-width: 720px) {
+				.prose {
+					padding: 0.5em;
+				}
+				.title {
+					padding-top: 0.5em;
+				}
+				.title h1 {
+					font-size: 2rem;
+				}
+				.title hr {
+					margin-top: 1.25em;
+				}
+			}
+		</style>
+	</head>
+
+	<body>
+		<Header />
+		<main>
+			<article>
+				<div class="hero-image">
+					{heroImage && <Image width={1020} height={510} src={heroImage} alt="" />}
+				</div>
+				<div class="prose">
+					<div class="title">
+						<div class="meta">
+							<FormattedDate date={pubDate} />
+							<AIBadge usage={aiUsage} />
+							<PangramBadge pangram={pangram} />
+							{
+								updatedDate && (
+									<span class="last-updated-on">
+										Updated <FormattedDate date={updatedDate} />
+									</span>
+								)
+							}
+							{
+								body && canonicalUrl && (
+									<span class="copy-slot">
+										<CopyForLLM
+											title={title}
+											description={description}
+											url={canonicalUrl}
+											body={body}
+										/>
+									</span>
+								)
+							}
+						</div>
+						<h1>{title}</h1>
+						{
+							link && (
+								<a class="source-link" href={link} target="_blank" rel="noopener">
+									↗ Read the original on {linkHost}
+								</a>
+							)
+						}
+						{
+							tags && tags.length > 0 && (
+								<div class="tags">
+									{tags.map((t) => (
+										<span class="tag">{t}</span>
+									))}
+								</div>
+							)
+						}
+						<hr />
+					</div>
+					{
+						problem && (
+							<aside class="problem">
+								<span class="problem__label">The problem</span>
+								<p class="problem__text">{problem}</p>
+							</aside>
+						)
+					}
+					{
+						series && slug && (
+							<SeriesNav
+								name={series.name}
+								part={series.part}
+								currentSlug={slug}
+								variant="top"
+							/>
+						)
+					}
+					<slot />
+					{
+						series && slug && (
+							<SeriesNav
+								name={series.name}
+								part={series.part}
+								currentSlug={slug}
+								variant="bottom"
+							/>
+						)
+					}
+					{canonicalUrl && <ShareButtons title={title} url={canonicalUrl} />}
+					{telemetry && <TelemetryFooter telemetry={telemetry} aiUsage={aiUsage} />}
+				</div>
+			</article>
+		</main>
+		<Footer />
+	</body>
+</html>
