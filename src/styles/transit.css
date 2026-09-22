@@ -1,0 +1,183 @@
+/*
+  The "transit" design. Loaded by BaseHead ONLY when DESIGN === 'transit' (consts.ts),
+  on top of global.css. Nothing here applies to the other designs.
+
+  The idea: the blog is a transit network. Posts are stations on one line per way a post
+  was made (hand / with AI / by AI); the hardware series is a branch line; a post page is
+  a station with a platform sign and a departures board for its build telemetry. Every
+  rule is scoped under html[data-design='transit'] (set by BaseHead), which also lets it
+  outrank global.css. The site header/footer carry their own transit blocks.
+*/
+
+html[data-design='transit'] {
+	--paper: #f7f4ec;
+	--paper-2: #efeadd;
+	--ink: #16181d;
+	--muted: #5d6068;
+	--rule: #d9d3c3;
+	--panel: #ffffff;
+	--sign: #16181d;
+	--sign-ink: #fdfcf8;
+	--zone-rule: #b9b1a0;
+	--hi: #fde68a;
+
+	/* one line colour per way a post was made, plus the series branch */
+	--hw: #14925a;
+	--as: #1f63d6;
+	--ai: #8a3fd1;
+	--br: #ea7a12;
+	--br-ink: #b35700;
+
+	--river: #bfe0ef;
+	--river-edge: #9fcde3;
+	--river-ink: #2d6784;
+	--amber: #ffb627;
+
+	/* shared tokens the common components read */
+	--bg: 247, 244, 236;
+	--surface: 255, 255, 255;
+	--black: 22, 24, 29;
+	--gray: 93, 96, 104;
+	--gray-light: 233, 228, 214;
+	--gray-dark: 27, 29, 34;
+	--border: 217, 211, 195;
+
+	--sans: 'Overpass', system-ui, sans-serif;
+	--mono: 'Overpass Mono', ui-monospace, monospace;
+	--serif: 'Source Serif 4', Georgia, serif;
+	--dot: 'DotGothic16', 'Overpass Mono', ui-monospace, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+	html[data-design='transit']:not([data-theme]) {
+		--paper: #14161b;
+		--paper-2: #1c1f26;
+		--ink: #eceae4;
+		--muted: #a3a7b0;
+		--rule: #2f333b;
+		--panel: #1c1f26;
+		--sign: #0c0d0f;
+		--zone-rule: #3a3e46;
+		--hi: rgba(250, 204, 21, 0.35);
+		--hw: #3ccf8e;
+		--as: #5b93ff;
+		--ai: #b784f0;
+		--br: #ff9a3d;
+		--br-ink: #ffb266;
+		--river: #173848;
+		--river-edge: #235570;
+		--river-ink: #8cc7e4;
+		--bg: 20, 22, 27;
+		--surface: 28, 31, 38;
+		--black: 236, 234, 228;
+		--gray: 163, 167, 176;
+		--gray-light: 36, 39, 46;
+		--gray-dark: 214, 214, 220;
+		--border: 47, 51, 59;
+	}
+}
+html[data-design='transit'][data-theme='dark'] {
+	--paper: #14161b;
+	--paper-2: #1c1f26;
+	--ink: #eceae4;
+	--muted: #a3a7b0;
+	--rule: #2f333b;
+	--panel: #1c1f26;
+	--sign: #0c0d0f;
+	--zone-rule: #3a3e46;
+	--hi: rgba(250, 204, 21, 0.35);
+	--hw: #3ccf8e;
+	--as: #5b93ff;
+	--ai: #b784f0;
+	--br: #ff9a3d;
+	--br-ink: #ffb266;
+	--river: #173848;
+	--river-edge: #235570;
+	--river-ink: #8cc7e4;
+	--bg: 20, 22, 27;
+	--surface: 28, 31, 38;
+	--black: 236, 234, 228;
+	--gray: 163, 167, 176;
+	--gray-light: 36, 39, 46;
+	--gray-dark: 214, 214, 220;
+	--border: 47, 51, 59;
+}
+
+html[data-design='transit'] body {
+	font-family: var(--sans);
+	background: var(--paper);
+	color: var(--ink);
+	overflow-x: clip;
+}
+html[data-design='transit'] :is(h1, h2, h3, h4) {
+	font-family: var(--sans);
+	letter-spacing: -0.015em;
+}
+html[data-design='transit'] code {
+	font-family: var(--mono);
+	background: rgb(var(--gray-light));
+	border-radius: 4px;
+}
+html[data-design='transit'] pre > code {
+	background: none;
+}
+
+/* Hand-authored diagrams were laid out against Atkinson's metrics. Keep them on it so
+   no label shifts or overflows its box under this design's fonts. */
+html[data-design='transit'] .svgfig {
+	font-family: var(--font-atkinson), ui-sans-serif, system-ui, sans-serif;
+}
+
+/* ---- pages without their own transit layout (writing, diagrams, …) get a panel ---- */
+html[data-design='transit'] main {
+	box-sizing: border-box;
+	background: var(--panel);
+	border: 2px solid var(--ink);
+	border-radius: 12px;
+	margin: 3em auto;
+	padding: 2.5em 3em;
+	position: relative;
+}
+html[data-design='transit'] main::before {
+	content: '';
+	position: absolute;
+	top: -2px;
+	left: -2px;
+	right: -2px;
+	height: 8px;
+	border-radius: 12px 12px 0 0;
+	background: linear-gradient(90deg, var(--hw) 0 25%, var(--as) 25% 50%, var(--ai) 50% 75%, var(--br) 75%);
+}
+@media (max-width: 720px) {
+	html[data-design='transit'] main {
+		margin: 1.5em auto;
+		padding: 1.6em 1.1em;
+		width: calc(100% - 1.5em);
+	}
+}
+
+/* ---- shared pieces (used by the transit home + post layouts) ---- */
+.t-bul {
+	display: inline-block;
+	flex: none;
+	width: 22px;
+	height: 22px;
+	border-radius: 50%;
+	color: #fff;
+	font: 800 11px/22px var(--sans);
+	text-align: center;
+	letter-spacing: 0;
+}
+.t-bul[data-line='handwritten'],
+.t-bul[data-line='dictated'] {
+	background: var(--hw);
+}
+.t-bul[data-line='assisted'] {
+	background: var(--as);
+}
+.t-bul[data-line='ai-written'] {
+	background: var(--ai);
+}
+.t-bul[data-line='series'] {
+	background: var(--br);
+}

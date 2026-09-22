@@ -44,4 +44,14 @@ const today = new Date();
 	:global(html[data-design='receipt']) .book a {
 		color: #fde047;
 	}
+
+	/* ---- transit design (DESIGN in consts.ts): end of the line ---- */
+	:global(html[data-design='transit']) footer {
+		border-top: 2px dashed var(--zone-rule);
+		color: var(--muted);
+		font-family: var(--mono);
+	}
+	:global(html[data-design='transit']) .book a {
+		color: var(--br-ink);
+	}
 </style>

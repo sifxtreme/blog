@@ -8,5 +8,12 @@ export const CAL_URL = 'https://cal.com/asif-ahmed-776/meet-with-asif';
 
 // Which site design renders. Each design lives in src/designs/<name>/ and owns its
 // homepage + post layout; everything else (components, content) is shared.
-// To go back to the old look, set this to 'classic' and rebuild.
-export const DESIGN: 'classic' | 'receipt' = 'receipt';
+// To switch designs, change the default below and rebuild. A single build can also
+// pick one without a code change: PUBLIC_DESIGN=transit npm run build (used for previews).
+export const DESIGNS = ['classic', 'receipt', 'transit'] as const;
+export type Design = (typeof DESIGNS)[number];
+const requested = import.meta.env.PUBLIC_DESIGN as string | undefined;
+if (requested && !DESIGNS.includes(requested as Design)) {
+	throw new Error(`PUBLIC_DESIGN="${requested}" is not one of: ${DESIGNS.join(', ')}`);
+}
+export const DESIGN: Design = (requested as Design) || 'receipt';

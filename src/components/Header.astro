@@ -209,6 +209,47 @@ const SOCIALS = {
 	:global(html[data-design='receipt']) .theme-toggle:hover {
 		color: #fde047;
 	}
+	/* ---- transit design (DESIGN in consts.ts): a line strip under the header ---- */
+	:global(html[data-design='transit']) header {
+		background: var(--paper);
+		backdrop-filter: none;
+		border-bottom: 0;
+		box-shadow: 0 5px 0 -1px var(--ink);
+		font-family: var(--sans);
+	}
+	:global(html[data-design='transit']) header::after {
+		content: '';
+		position: absolute;
+		left: 0;
+		right: 0;
+		bottom: -5px;
+		height: 5px;
+		background: linear-gradient(90deg, var(--hw) 0 25%, var(--as) 25% 50%, var(--ai) 50% 75%, var(--br) 75%);
+	}
+	:global(html[data-design='transit']) .site-title {
+		font-weight: 900;
+		color: var(--ink);
+	}
+	:global(html[data-design='transit']) nav a,
+	:global(html[data-design='transit']) .social-links a,
+	:global(html[data-design='transit']) .theme-toggle {
+		color: var(--ink);
+	}
+	:global(html[data-design='transit']) .internal-links :global(a.active) {
+		color: var(--ink);
+		border-bottom-color: var(--ink);
+		font-weight: 700;
+	}
+	:global(html[data-design='transit']) .internal-links a.cta {
+		color: var(--br-ink);
+		font-weight: 800;
+	}
+	:global(html[data-design='transit']) .site-title:hover,
+	:global(html[data-design='transit']) nav a:hover,
+	:global(html[data-design='transit']) .social-links a:hover,
+	:global(html[data-design='transit']) .theme-toggle:hover {
+		color: var(--as);
+	}
 	/* the mono face is wider than Atkinson; tighten the nav so it fits a phone */
 	@media (max-width: 720px) {
 		:global(html[data-design='receipt']) .site-title,

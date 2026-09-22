@@ -3,8 +3,9 @@
 import { DESIGN } from '../consts';
 import ClassicHome from '../designs/classic/Home.astro';
 import ReceiptHome from '../designs/receipt/Home.astro';
+import TransitHome from '../designs/transit/Home.astro';
 
-const Home = DESIGN === 'receipt' ? ReceiptHome : ClassicHome;
+const Home = { classic: ClassicHome, receipt: ReceiptHome, transit: TransitHome }[DESIGN];
 ---
 
 <Home />

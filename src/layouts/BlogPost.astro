@@ -5,6 +5,7 @@ import type { CollectionEntry } from 'astro:content';
 import { DESIGN } from '../consts';
 import ClassicPost from '../designs/classic/Post.astro';
 import ReceiptPost from '../designs/receipt/Post.astro';
+import TransitPost from '../designs/transit/Post.astro';
 
 type Props = CollectionEntry<'blog'>['data'] & {
 	ogImagePath?: string;
@@ -12,7 +13,7 @@ type Props = CollectionEntry<'blog'>['data'] & {
 	body?: string;
 };
 
-const Post = DESIGN === 'receipt' ? ReceiptPost : ClassicPost;
+const Post = { classic: ClassicPost, receipt: ReceiptPost, transit: TransitPost }[DESIGN];
 ---
 
 <Post {...Astro.props}><slot /></Post>

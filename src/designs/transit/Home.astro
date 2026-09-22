@@ -1,0 +1,769 @@
+---
+// Transit design — homepage. The writing list is a network map: every post is a station
+// on the line for how it was made, the series is a branch line with numbered stops, and
+// each month is a fare zone. Rows are rendered here; the track lines are drawn by the small
+// script at the bottom, which measures the rendered rows so tracks always meet their titles.
+import { Image } from 'astro:assets';
+import { getCollection } from 'astro:content';
+import asifHead from '../../assets/asif-head.png';
+import BaseHead from '../../components/BaseHead.astro';
+import Footer from '../../components/Footer.astro';
+import Header from '../../components/Header.astro';
+import { CAL_URL, SITE_DESCRIPTION, SITE_TITLE } from '../../consts';
+import { SERIES, type Post } from '../../series';
+
+type LineKey = 'handwritten' | 'dictated' | 'assisted' | 'ai-written' | 'series';
+const LINES: Record<LineKey, { lane: number; name: string; b: string }> = {
+	assisted: { lane: 0, name: 'Assisted Line', b: 'A' },
+	handwritten: { lane: 1, name: 'Handwritten Line', b: 'H' },
+	dictated: { lane: 1, name: 'Handwritten Line', b: 'D' },
+	'ai-written': { lane: 2, name: 'AI-Written Line', b: 'AI' },
+	series: { lane: 3, name: 'Series Branch', b: 'S' },
+};
+const lineOf = (p: Post): LineKey => (p.data.series ? 'series' : p.data.aiUsage);
+
+const all = await getCollection('blog');
+// newest first; on the same day, higher series parts first so the branch reads upward
+const posts = [...all].sort(
+	(a, b) =>
+		b.data.pubDate.valueOf() - a.data.pubDate.valueOf() ||
+		(b.data.series?.part ?? 0) - (a.data.series?.part ?? 0),
+);
+
+const href = (p: Post) => p.data.link ?? `/blog/${p.id}/`;
+const ext = (p: Post) => (p.data.link ? { target: '_blank', rel: 'noopener' } : {});
+const DAY = 864e5;
+const fmt = (d: Date, o: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric', year: 'numeric' }) =>
+	d.toLocaleDateString('en-US', { ...o, timeZone: 'UTC' });
+
+// A post written twice — "(human)" and "(AI)" editions of one title — is one interchange station.
+type Station = { base: string; posts: Post[] };
+const stations: Station[] = [];
+for (const p of posts) {
+	const m = p.data.title.match(/^(.*) \((human|AI)\)$/);
+	const twin = m && stations.find((s) => s.base === m[1]);
+	if (twin) twin.posts.push(p);
+	else stations.push({ base: m ? m[1] : p.data.title, posts: [p] });
+}
+
+// Build the map rows: a fare zone per month, a station per post, and a "quiet river"
+// wherever two weeks or more passed between departures.
+type Row =
+	| { kind: 'zone'; zone: number; label: string }
+	| { kind: 'river'; days: number }
+	| { kind: 'station'; st: Station };
+const rows: Row[] = [];
+let month = '';
+stations.forEach((st, i) => {
+	const d = st.posts[0].data.pubDate;
+	const mo = d.toISOString().slice(0, 7);
+	if (mo !== month) {
+		month = mo;
+		rows.push({ kind: 'zone', zone: d.getUTCMonth() + 1, label: fmt(d, { month: 'long', year: 'numeric' }) });
+	}
+	rows.push({ kind: 'station', st });
+	const older = stations[i + 1];
+	if (older) {
+		const days = Math.round((d.valueOf() - older.posts[0].data.pubDate.valueOf()) / DAY) - 1;
+		if (days >= 14) rows.push({ kind: 'river', days });
+	}
+});
+
+const seriesParts = all.filter((p) => p.data.series);
+const seriesName = seriesParts[0]?.data.series?.name;
+const seriesTotal = seriesParts.length;
+const firstPart = [...seriesParts].sort((a, b) => a.data.series!.part - b.data.series!.part)[0];
+
+const count = (k: string) => all.filter((p) => p.data.aiUsage === k).length;
+const soloCount = (k: string) => all.filter((p) => !p.data.series && p.data.aiUsage === k).length;
+const busiest = (['assisted', 'handwritten', 'ai-written'] as const).reduce((a, b) => (soloCount(b) > soloCount(a) ? b : a));
+const longest = [...all].filter((p) => p.data.telemetry).sort((a, b) => b.data.telemetry!.turns - a.data.telemetry!.turns)[0];
+const oldest = posts[posts.length - 1];
+
+const stationMeta = (p: Post) => {
+	const bits = [fmt(p.data.pubDate)];
+	if (p.data.telemetry) bits.push(`${p.data.telemetry.turns} turns`);
+	if (p.data.pangram) bits.push(`${p.data.pangram.human}% human`);
+	return bits.join(' · ');
+};
+
+const MAKING = [
+	{
+		title: 'Printable math worksheets',
+		href: 'https://math.sifxtreme.com',
+		desc: 'Free word problems, logic puzzles and arithmetic drills for 3rd–5th grade, plus step-through animations of long division and multiplication. Sized to five minutes rather than to fill a page. No signup, no ads.',
+	},
+	{
+		title: 'Type Quest',
+		href: 'https://typing.sifxtreme.com',
+		desc: 'A touch-typing tutor that shows the finger coming back to the home row, the one habit every other tutor hides. One page, no signup, no ads.',
+	},
+];
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<BaseHead title={SITE_TITLE} description={SITE_DESCRIPTION} />
+	</head>
+	<body>
+		<Header />
+		<main class="t-home">
+			<header class="poster">
+				<div class="network">
+					<i aria-hidden="true"><b data-line="handwritten"></b><b data-line="assisted"></b><b data-line="ai-written"></b><b data-line="series"></b></i>
+					sifxtreme network · map of posts
+				</div>
+				<div class="who">
+					<div class="avatar">
+						<Image src={asifHead} alt={SITE_TITLE} width={96} height={96} densities={[1, 2]} />
+					</div>
+					<div>
+						<h1>{SITE_TITLE}</h1>
+						<p>{SITE_DESCRIPTION}</p>
+					</div>
+				</div>
+				<a class="ticket" href={CAL_URL} target="_blank" rel="noopener">
+					<span class="stub" aria-hidden="true">ADMIT 1</span>
+					<span class="body"><strong>Book 15 minutes with me →</strong><span>to talk tech or philosophy or leadership.</span></span>
+				</a>
+			</header>
+
+			<div class="grid">
+				<section>
+					<div class="maphead">
+						<h2>Network map</h2>
+						<span>{all.length} stations · newest at the top</span>
+					</div>
+					<div class="map" id="t-map">
+						<svg class="tracks" id="t-tracks" aria-hidden="true"></svg>
+						{
+							rows.map((r) => {
+								if (r.kind === 'zone')
+									return (
+										<div class="row zone">
+											<div />
+											<div class="lbl">
+												<b>Zone {r.zone}</b>
+												{r.label}
+											</div>
+										</div>
+									);
+								if (r.kind === 'river')
+									return (
+										<div class="row river">
+											<svg class="water" viewBox="0 0 1000 64" preserveAspectRatio="none" aria-hidden="true">
+												<path d="M0 16 C 120 4, 220 30, 360 18 S 620 2, 760 20 S 930 30, 1000 14 L1000 50 C 880 62, 760 38, 620 50 S 330 62, 200 46 S 60 40, 0 52 Z" />
+											</svg>
+											<div />
+											<div class="lbl">The quiet river · {r.days} days with no departures</div>
+										</div>
+									);
+								const st = r.st;
+								const p = st.posts[0];
+								if (st.posts.length > 1)
+									return (
+										<div class="row stn" data-lanes={st.posts.map((q) => LINES[lineOf(q)].lane).join(',')} data-kind="x">
+											<div />
+											<div class="lbl">
+												<a class="t" href={href(p)} {...ext(p)}>{st.base}</a>
+												<div class="meta">{fmt(p.data.pubDate)} · interchange · one post, two ways of writing it</div>
+												<div class="chips">
+													{st.posts.map((q) => (
+														<a class="chip" href={href(q)} {...ext(q)} title={q.data.title}>
+															<b class="t-bul" data-line={lineOf(q)}>{LINES[lineOf(q)].b}</b>
+															{/\(human\)$/.test(q.data.title) ? 'human edition' : 'AI edition'}
+															{q.data.pangram && ` · ${q.data.pangram.human}% human`}
+														</a>
+													))}
+												</div>
+											</div>
+										</div>
+									);
+								const k = lineOf(p);
+								return (
+									<div
+										class="row stn"
+										data-lanes={String(LINES[k].lane)}
+										data-line={k}
+										data-kind={p.data.series ? 'n' : 'o'}
+										data-n={p.data.series?.part}
+									>
+										<div />
+										<div class="lbl">
+											<a class="t" href={href(p)} {...ext(p)}>
+												{p.data.title}
+												{p.data.link && <span class="ext"> ↗</span>}
+											</a>
+											<div class="meta">
+												{p.data.series ? (
+													<span class="ln" data-line="series">
+														Stop {p.data.series.part} of {seriesTotal}
+													</span>
+												) : (
+													<span class="ln" data-line={k}>{LINES[k].name}</span>
+												)}
+												{' · '}
+												{stationMeta(p)}
+											</div>
+											{p === firstPart && seriesName && (
+												<p class="branchnote">
+													<b>{seriesName}.</b> {SERIES[seriesName]?.blurb}
+												</p>
+											)}
+										</div>
+									</div>
+								);
+							})
+						}
+						<div class="row end">
+							<div />
+							<div class="lbl terminus">Line opened {fmt(oldest.data.pubDate)} · end of the line</div>
+						</div>
+					</div>
+				</section>
+
+				<aside class="side">
+					<div class="panel">
+						<h3>Key · how it was made</h3>
+						<div class="key">
+							<div>
+								<svg width="54" height="26" viewBox="0 0 54 26" aria-hidden="true"><line x1="2" y1="13" x2="52" y2="13" style="stroke:var(--hw)" stroke-width="6" stroke-linecap="round" /><circle cx="27" cy="13" r="7" style="fill:var(--panel);stroke:var(--hw)" stroke-width="4" /></svg>
+								<span><b>Handwritten Line</b><small>{count('handwritten') + count('dictated')} posts · I wrote every word</small></span>
+							</div>
+							<div>
+								<svg width="54" height="26" viewBox="0 0 54 26" aria-hidden="true"><line x1="2" y1="13" x2="52" y2="13" style="stroke:var(--as)" stroke-width="6" stroke-linecap="round" /><circle cx="27" cy="13" r="7" style="fill:var(--panel);stroke:var(--as)" stroke-width="4" /></svg>
+								<span><b>Assisted Line</b><small>{count('assisted')} posts · I wrote it, Claude helped</small></span>
+							</div>
+							<div>
+								<svg width="54" height="26" viewBox="0 0 54 26" aria-hidden="true"><line x1="2" y1="13" x2="52" y2="13" style="stroke:var(--ai)" stroke-width="6" stroke-linecap="round" /><circle cx="27" cy="13" r="7" style="fill:var(--panel);stroke:var(--ai)" stroke-width="4" /></svg>
+								<span><b>AI-Written Line</b><small>{count('ai-written')} posts · Claude wrote it, I steered</small></span>
+							</div>
+							{
+								seriesName && (
+									<div>
+										<svg width="54" height="26" viewBox="0 0 54 26" aria-hidden="true"><line x1="2" y1="13" x2="52" y2="13" style="stroke:var(--br)" stroke-width="6" stroke-linecap="round" /><circle cx="27" cy="13" r="10" style="fill:var(--br)" /><text x="27" y="17" text-anchor="middle" font-weight="800" font-size="12" fill="#fff">3</text></svg>
+										<span><b>Series Branch</b><small>{seriesName}, {seriesTotal} numbered stops</small></span>
+									</div>
+								)
+							}
+							<div>
+								<svg width="54" height="26" viewBox="0 0 54 26" aria-hidden="true"><rect x="8" y="5" width="38" height="16" rx="8" style="fill:var(--panel);stroke:var(--ink)" stroke-width="3.5" /></svg>
+								<span><b>Interchange</b><small>one post, two ways of writing it</small></span>
+							</div>
+							<div>
+								<svg width="54" height="26" viewBox="0 0 54 26" aria-hidden="true"><line x1="2" y1="13" x2="52" y2="13" style="stroke:var(--zone-rule)" stroke-width="2" stroke-dasharray="5 4" /></svg>
+								<span><b>Fare zone</b><small>one zone per month</small></span>
+							</div>
+						</div>
+					</div>
+
+					<div class="panel">
+						<h3>Service notes</h3>
+						<div class="notes">
+							<p>
+								<b class="t-bul" data-line="handwritten">H</b>
+								<span><b>Limited service</b> on the Handwritten Line: {count('handwritten') + count('dictated')} stops so far. Trains run when I have something to say.</span>
+							</p>
+							<p>
+								<b class="t-bul" data-line={busiest}>{LINES[busiest].b}</b>
+								<span>The <b>{LINES[busiest].name}</b> is the busiest route, with {soloCount(busiest)} stations.</span>
+							</p>
+							{
+								longest && (
+									<p>
+										<b class="t-bul" data-line={lineOf(longest)}>{LINES[lineOf(longest)].b}</b>
+										<span>
+											Longest journey: <a href={href(longest)}>{longest.data.title}</a>, {longest.data.telemetry!.turns} turns.
+										</span>
+									</p>
+								)
+							}
+						</div>
+					</div>
+
+					<div class="panel">
+						<h3>Connecting services</h3>
+						<div class="making">
+							{
+								MAKING.map((m) => (
+									<div>
+										<a href={m.href} target="_blank" rel="noopener">
+											<strong>
+												{m.title} <span class="ext">↗</span>
+											</strong>
+										</a>
+										<span>{m.desc}</span>
+									</div>
+								))
+							}
+						</div>
+						<a class="how" href="/how-these-are-written/">How these are written →</a>
+					</div>
+				</aside>
+			</div>
+		</main>
+		<Footer />
+
+		<script is:inline>
+			(function () {
+				// Draw the track lines from the rendered rows so tracks always meet their titles.
+				var map = document.getElementById('t-map');
+				var svg = document.getElementById('t-tracks');
+				if (!map || !svg) return;
+				var COLORS = ['var(--as)', 'var(--hw)', 'var(--ai)', 'var(--br)'];
+				function seg(d, col) {
+					return (
+						'<path d="' + d + '" fill="none" style="stroke:var(--paper)" stroke-width="12" stroke-linejoin="round"/>' +
+						'<path d="' + d + '" fill="none" style="stroke:' + col + '" stroke-width="6" stroke-linejoin="round"/>'
+					);
+				}
+				function cap(x, y, col) {
+					return '<line x1="' + (x - 9) + '" y1="' + y + '" x2="' + (x + 9) + '" y2="' + y + '" style="stroke:' + col + '" stroke-width="6" stroke-linecap="round"/>';
+				}
+				function draw() {
+					var gap = parseFloat(getComputedStyle(map).getPropertyValue('--gap')) || 30;
+					var mr = map.getBoundingClientRect();
+					var W = gap * 4 + 16, H = map.offsetHeight;
+					var X = function (lane) { return 14 + lane * gap; };
+					svg.setAttribute('width', W);
+					svg.setAttribute('height', H);
+					svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+					var stops = Array.prototype.map.call(map.querySelectorAll('.stn'), function (el) {
+						var r = el.querySelector('.t').getClientRects()[0];
+						return {
+							y: Math.round(r.top + r.height / 2 - mr.top),
+							lanes: el.dataset.lanes.split(',').map(Number),
+							kind: el.dataset.kind,
+							n: el.dataset.n,
+						};
+					});
+					var top = 18, bot = H - 26, out = [];
+					// three main lines fan out from one hub at the top
+					[0, 1, 2].forEach(function (lane) {
+						var x = X(lane), hx = X(1);
+						var d = x === hx ? 'M' + x + ' ' + top + ' V' + bot : 'M' + hx + ' ' + top + ' L' + x + ' ' + (top + Math.abs(x - hx)) + ' V' + bot;
+						out.push(seg(d, COLORS[lane]), cap(x, bot, COLORS[lane]));
+					});
+					// the series branch leaves the AI-Written Line below its first stop
+					var ser = stops.filter(function (s) { return s.kind === 'n'; }).sort(function (a, b) { return a.n - b.n; });
+					if (ser.length) {
+						var x2 = X(2), x3 = X(3);
+						var yJ = ser[0].y + gap + 26, yEnd = ser[ser.length - 1].y - 20;
+						out.push(seg('M' + x2 + ' ' + yJ + ' L' + x3 + ' ' + (yJ - gap) + ' V' + yEnd, COLORS[3]), cap(x3, yEnd, COLORS[3]));
+						out.push('<circle cx="' + x2 + '" cy="' + yJ + '" r="4" style="fill:' + COLORS[3] + '"/>');
+					}
+					stops.forEach(function (s) {
+						if (s.kind === 'x') {
+							var a = Math.min.apply(null, s.lanes), b = Math.max.apply(null, s.lanes);
+							out.push('<rect x="' + (X(a) - 10) + '" y="' + (s.y - 10) + '" width="' + (X(b) - X(a) + 20) + '" height="20" rx="10" style="fill:var(--panel);stroke:var(--ink)" stroke-width="4"/>');
+							s.lanes.forEach(function (l) { out.push('<circle cx="' + X(l) + '" cy="' + s.y + '" r="4" style="fill:' + COLORS[l] + '"/>'); });
+						} else if (s.kind === 'n') {
+							out.push('<circle cx="' + X(3) + '" cy="' + s.y + '" r="11" style="fill:var(--br);stroke:var(--paper)" stroke-width="3"/>');
+							out.push('<text x="' + X(3) + '" y="' + (s.y + 4.5) + '" text-anchor="middle" font-family="Overpass, sans-serif" font-weight="800" font-size="13" fill="#fff">' + s.n + '</text>');
+						} else {
+							out.push('<circle cx="' + X(s.lanes[0]) + '" cy="' + s.y + '" r="7" style="fill:var(--panel);stroke:' + COLORS[s.lanes[0]] + '" stroke-width="4"/>');
+						}
+						var edge = X(Math.max.apply(null, s.lanes)) + (s.kind === 'n' ? 13 : 11);
+						if (W - 2 > edge + 4) out.push('<line x1="' + edge + '" y1="' + s.y + '" x2="' + (W - 2) + '" y2="' + s.y + '" style="stroke:var(--ink)" stroke-width="1.5" stroke-dasharray="2 3" opacity=".35"/>');
+					});
+					out.push('<rect x="' + (X(1) - 13) + '" y="' + (top - 11) + '" width="26" height="22" rx="11" style="fill:var(--panel);stroke:var(--ink)" stroke-width="4"/>');
+					svg.innerHTML = out.join('');
+				}
+				draw();
+				if (document.fonts && document.fonts.ready) document.fonts.ready.then(draw);
+				var raf;
+				addEventListener('resize', function () { cancelAnimationFrame(raf); raf = requestAnimationFrame(draw); });
+			})();
+		</script>
+	</body>
+</html>
+
+<style>
+	main.t-home {
+		background: none;
+		border: 0;
+		padding: 0;
+		width: 1200px;
+		max-width: calc(100% - 32px);
+		margin: 0 auto;
+		font-size: 17px;
+		line-height: 1.5;
+	}
+	main.t-home::before {
+		display: none;
+	}
+	.poster {
+		padding: 48px 0 28px;
+	}
+	.network {
+		font: 700 12px var(--mono);
+		letter-spacing: 0.18em;
+		text-transform: uppercase;
+		color: var(--muted);
+		display: flex;
+		align-items: center;
+		gap: 10px;
+	}
+	.network i {
+		display: inline-flex;
+		gap: 3px;
+	}
+	.network b {
+		width: 18px;
+		height: 5px;
+		border-radius: 3px;
+		display: block;
+	}
+	.network b[data-line='handwritten'] { background: var(--hw); }
+	.network b[data-line='assisted'] { background: var(--as); }
+	.network b[data-line='ai-written'] { background: var(--ai); }
+	.network b[data-line='series'] { background: var(--br); }
+	.who {
+		display: flex;
+		gap: 22px;
+		align-items: center;
+		margin-top: 18px;
+		flex-wrap: wrap;
+	}
+	.avatar {
+		width: 96px;
+		height: 96px;
+		border-radius: 50%;
+		padding: 6px;
+		flex: none;
+		background: conic-gradient(var(--as) 0 25%, var(--hw) 0 50%, var(--ai) 0 75%, var(--br) 0);
+	}
+	.avatar img {
+		width: 100%;
+		height: 100%;
+		border-radius: 50%;
+		border: 4px solid var(--paper);
+		display: block;
+		object-fit: cover;
+		object-position: center top;
+	}
+	.who h1 {
+		font: 900 clamp(40px, 7vw, 72px) / 0.95 var(--sans);
+		letter-spacing: -0.03em;
+		margin: 0;
+		color: var(--ink);
+	}
+	.who p {
+		margin: 8px 0 0;
+		font-size: 19px;
+		max-width: 620px;
+		color: rgb(var(--gray-dark));
+	}
+	.ticket {
+		display: inline-flex;
+		align-items: stretch;
+		margin-top: 22px;
+		text-decoration: none;
+		max-width: 100%;
+		color: var(--ink);
+	}
+	.ticket .stub {
+		background: var(--br);
+		color: #fff;
+		font: 800 13px var(--mono);
+		letter-spacing: 0.1em;
+		padding: 12px 14px;
+		writing-mode: vertical-rl;
+		transform: rotate(180deg);
+		text-align: center;
+		border-radius: 0 8px 8px 0;
+	}
+	.ticket .body {
+		background: var(--panel);
+		border: 2px solid var(--ink);
+		border-left: 2px dashed var(--ink);
+		padding: 10px 16px;
+		border-radius: 0 8px 8px 0;
+	}
+	.ticket strong {
+		display: block;
+		font-size: 19px;
+		font-weight: 800;
+	}
+	.ticket .body span {
+		font-size: 15px;
+		color: var(--muted);
+	}
+	.ticket:hover .body {
+		background: var(--paper-2);
+	}
+
+	.grid {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) 320px;
+		gap: 40px;
+		align-items: start;
+		padding-bottom: 72px;
+	}
+	.maphead {
+		display: flex;
+		justify-content: space-between;
+		align-items: baseline;
+		gap: 12px;
+		border-bottom: 3px solid var(--ink);
+		padding-bottom: 8px;
+		flex-wrap: wrap;
+	}
+	.maphead h2 {
+		font: 900 26px var(--sans);
+		margin: 0;
+		text-transform: uppercase;
+		color: var(--ink);
+	}
+	.maphead span {
+		font: 600 13px var(--mono);
+		color: var(--muted);
+	}
+	.map {
+		--gap: 30px;
+		--lanes: 150px;
+		position: relative;
+		margin-top: 6px;
+	}
+	.tracks {
+		position: absolute;
+		left: 0;
+		top: 0;
+		pointer-events: none;
+		z-index: 2;
+		overflow: visible;
+	}
+	.row {
+		position: relative;
+		display: grid;
+		grid-template-columns: var(--lanes) minmax(0, 1fr);
+	}
+	.row .lbl {
+		padding: 12px 0 12px 4px;
+		min-width: 0;
+	}
+	.zone {
+		padding: 22px 0 6px;
+		border-top: 2px dashed var(--zone-rule);
+		margin-top: 8px;
+	}
+	.map > .zone:first-of-type {
+		border-top: 0;
+		margin-top: 0;
+	}
+	.zone .lbl {
+		padding: 0 0 0 4px;
+		font: 700 12px var(--mono);
+		letter-spacing: 0.16em;
+		text-transform: uppercase;
+		color: var(--muted);
+	}
+	.zone .lbl b {
+		display: inline-block;
+		background: var(--ink);
+		color: var(--paper);
+		padding: 2px 7px 1px;
+		margin-right: 8px;
+		letter-spacing: 0.08em;
+	}
+	.stn .t {
+		font-weight: 700;
+		font-size: 19px;
+		line-height: 1.3;
+		text-decoration: none;
+		color: var(--ink);
+	}
+	.stn .t:hover {
+		text-decoration: underline;
+		text-decoration-thickness: 2px;
+		text-underline-offset: 3px;
+	}
+	.ext {
+		color: var(--br-ink);
+	}
+	.stn .meta {
+		font: 400 13.5px/1.5 var(--mono);
+		color: var(--muted);
+		margin-top: 3px;
+	}
+	.ln {
+		font-weight: 700;
+	}
+	.ln[data-line='handwritten'],
+	.ln[data-line='dictated'] { color: var(--hw); }
+	.ln[data-line='assisted'] { color: var(--as); }
+	.ln[data-line='ai-written'] { color: var(--ai); }
+	.ln[data-line='series'] { color: var(--br-ink); }
+	.chips {
+		display: flex;
+		gap: 8px;
+		flex-wrap: wrap;
+		margin-top: 6px;
+	}
+	.chip {
+		font: 700 13px var(--mono);
+		text-decoration: none;
+		color: var(--ink);
+		border: 2px solid var(--ink);
+		border-radius: 999px;
+		padding: 3px 10px 2px 4px;
+		display: inline-flex;
+		gap: 6px;
+		align-items: center;
+		background: var(--panel);
+	}
+	.chip:hover {
+		background: var(--paper-2);
+	}
+	.river {
+		height: 92px;
+	}
+	.river .water {
+		position: absolute;
+		left: 0;
+		width: 100%;
+		top: 14px;
+		height: 64px;
+		z-index: 0;
+	}
+	.river .water path {
+		fill: var(--river);
+		stroke: var(--river-edge);
+		stroke-width: 2;
+		vector-effect: non-scaling-stroke;
+	}
+	.river .lbl {
+		position: relative;
+		z-index: 3;
+		align-self: center;
+		font: italic 400 15px var(--serif);
+		color: var(--river-ink);
+	}
+	.branchnote {
+		margin: 4px 0 2px;
+		font-size: 15px;
+		color: rgb(var(--gray-dark));
+		max-width: 560px;
+	}
+	.branchnote b {
+		color: var(--br-ink);
+	}
+	.terminus {
+		font: 700 12px var(--mono);
+		letter-spacing: 0.14em;
+		text-transform: uppercase;
+		color: var(--muted);
+	}
+
+	.side {
+		position: sticky;
+		top: 80px;
+		display: grid;
+		gap: 22px;
+	}
+	.panel {
+		background: var(--panel);
+		border: 2px solid var(--ink);
+		border-radius: 10px;
+		padding: 16px 16px 14px;
+	}
+	.panel h3 {
+		margin: 0 0 10px;
+		font: 800 14px var(--mono);
+		letter-spacing: 0.14em;
+		text-transform: uppercase;
+		color: var(--ink);
+	}
+	.key {
+		display: grid;
+		gap: 10px;
+	}
+	.key div {
+		display: grid;
+		grid-template-columns: 54px 1fr;
+		align-items: center;
+		gap: 10px;
+		font-size: 15px;
+		line-height: 1.3;
+	}
+	.key small {
+		display: block;
+		color: var(--muted);
+		font-size: 13px;
+	}
+	.notes {
+		display: grid;
+		gap: 10px;
+		font-size: 15px;
+		line-height: 1.4;
+	}
+	.notes p {
+		margin: 0;
+		display: grid;
+		grid-template-columns: 24px 1fr;
+		gap: 8px;
+	}
+	.making {
+		display: grid;
+		gap: 14px;
+	}
+	.making div {
+		border-left: 4px dashed var(--zone-rule);
+		padding-left: 12px;
+	}
+	.making a {
+		color: var(--ink);
+		text-decoration: none;
+	}
+	.making a:hover strong {
+		text-decoration: underline;
+	}
+	.making strong {
+		display: block;
+		font-size: 17px;
+	}
+	.making span {
+		font-size: 15px;
+		color: rgb(var(--gray-dark));
+		line-height: 1.45;
+		display: block;
+	}
+	.making .ext {
+		display: inline;
+	}
+	.how {
+		display: inline-block;
+		margin-top: 14px;
+		font: 700 14px var(--mono);
+		color: var(--as);
+	}
+
+	@media (max-width: 1000px) {
+		.grid {
+			grid-template-columns: minmax(0, 1fr);
+		}
+		.side {
+			position: static;
+		}
+	}
+	@media (max-width: 700px) {
+		.map {
+			--gap: 20px;
+			--lanes: 96px;
+		}
+		.poster {
+			padding-top: 32px;
+		}
+		.avatar {
+			width: 76px;
+			height: 76px;
+		}
+		.stn .t {
+			font-size: 17.5px;
+		}
+		.stn .meta {
+			font-size: 12.5px;
+		}
+	}
+</style>
