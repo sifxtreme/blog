@@ -1,0 +1,93 @@
+---
+// Click any image in a post to see it bigger. Covers plain <img> in the post body (screenshots,
+// photos); diagrams keep their own lightboxes (Figure / Diagram), and an image inside a link
+// still follows the link. One shared overlay per page; click anywhere or press Escape to close.
+// Included once by every design's post layout.
+---
+
+<script>
+	(function () {
+		if ((window as any).__imgZoomLB) return;
+		(window as any).__imgZoomLB = true;
+		const ELIGIBLE = '.prose img:not(.diagram-zoom img):not(.svgfig img):not(a img)';
+		const overlay = document.createElement('div');
+		overlay.className = 'imgzoom-lightbox';
+		overlay.hidden = true;
+		overlay.setAttribute('role', 'dialog');
+		overlay.setAttribute('aria-modal', 'true');
+		overlay.tabIndex = -1;
+		const img = document.createElement('img');
+		img.className = 'imgzoom-img';
+		const cap = document.createElement('p');
+		cap.className = 'imgzoom-cap';
+		overlay.append(img, cap);
+		document.body.appendChild(overlay);
+		let last: HTMLElement | null = null;
+		function open(src: HTMLImageElement) {
+			img.src = src.currentSrc || src.src;
+			img.alt = src.alt;
+			cap.textContent = src.alt;
+			cap.hidden = !src.alt;
+			overlay.hidden = false;
+			document.body.style.overflow = 'hidden';
+			last = document.activeElement as HTMLElement;
+			overlay.focus();
+		}
+		function close() {
+			overlay.hidden = true;
+			document.body.style.overflow = '';
+			img.removeAttribute('src');
+			if (last) last.focus();
+		}
+		document.addEventListener('click', (e) => {
+			const t = e.target as HTMLElement;
+			if (!overlay.hidden) {
+				if (overlay.contains(t)) close();
+				return;
+			}
+			if (t instanceof HTMLImageElement && t.matches(ELIGIBLE) && t.naturalWidth >= 200) open(t);
+		});
+		document.addEventListener('keydown', (e) => {
+			if (e.key === 'Escape' && !overlay.hidden) close();
+		});
+	})();
+</script>
+
+<style is:global>
+	.prose img:not(.diagram-zoom img):not(.svgfig img):not(a img) {
+		cursor: zoom-in;
+	}
+	.imgzoom-lightbox {
+		position: fixed;
+		inset: 0;
+		z-index: 9999;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: 12px;
+		padding: 4vmin;
+		background: rgba(0, 0, 0, 0.8);
+		cursor: zoom-out;
+	}
+	.imgzoom-lightbox[hidden] {
+		display: none;
+	}
+	.imgzoom-img {
+		max-width: 96vw;
+		max-height: 86vh;
+		width: auto;
+		height: auto;
+		border-radius: 8px;
+		box-shadow: 0 12px 48px rgba(0, 0, 0, 0.5);
+		background: #fff;
+	}
+	.imgzoom-cap {
+		margin: 0;
+		max-width: 80ch;
+		color: #eee;
+		font-size: 0.9rem;
+		line-height: 1.4;
+		text-align: center;
+	}
+</style>

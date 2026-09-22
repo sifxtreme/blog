@@ -48,6 +48,15 @@ const SOCIALS = {
 					></path></svg
 				>
 			</a>
+			<a class="design-link" href="/settings/" title="Settings: pick a design">
+				<span class="sr-only">Settings</span>
+				<svg viewBox="0 0 16 16" aria-hidden="true" width="18" height="18"
+					><path
+						fill="currentColor"
+						d="M2 3.5a.75.75 0 0 1 .75-.75h5.4a2 2 0 0 1 3.7 0h1.4a.75.75 0 0 1 0 1.5h-1.4a2 2 0 0 1-3.7 0h-5.4A.75.75 0 0 1 2 3.5Zm7.5 0a.5.5 0 1 0 1 0 .5.5 0 0 0-1 0ZM2 8a.75.75 0 0 1 .75-.75h1.4a2 2 0 0 1 3.7 0h5.4a.75.75 0 0 1 0 1.5h-5.4a2 2 0 0 1-3.7 0h-1.4A.75.75 0 0 1 2 8Zm3.5 0a.5.5 0 1 0 1 0 .5.5 0 0 0-1 0Zm-3.5 4.5a.75.75 0 0 1 .75-.75h6.4a2 2 0 0 1 3.7 0h.4a.75.75 0 0 1 0 1.5h-.4a2 2 0 0 1-3.7 0h-6.4a.75.75 0 0 1-.75-.75Zm8.5 0a.5.5 0 1 0 1 0 .5.5 0 0 0-1 0Z"
+					></path></svg
+				>
+			</a>
 			<button id="theme-toggle" class="theme-toggle" type="button" aria-label="Toggle light and dark theme" title="Toggle theme">
 				<span class="sr-only">Toggle theme</span>
 				<svg class="icon-moon" viewBox="0 0 16 16" aria-hidden="true" width="18" height="18"><path fill="currentColor" d="M6 .278a.77.77 0 0 1 .08.858 7.2 7.2 0 0 0-.878 3.46c0 4.021 3.278 7.277 7.318 7.277q.792-.001 1.533-.16a.79.79 0 0 1 .81.316.73.73 0 0 1-.031.893A8.35 8.35 0 0 1 8.344 16C3.734 16 0 12.286 0 7.71 0 4.266 2.114 1.312 5.124.06A.75.75 0 0 1 6 .278"></path></svg>
@@ -152,6 +161,10 @@ const SOCIALS = {
 	@media (max-width: 720px) {
 		.social-links a {
 			display: none;
+		}
+		/* the settings link stays: it's the only way to reach the design picker */
+		.social-links a.design-link {
+			display: flex;
 		}
 		.site-title {
 			font-size: 0.95rem;

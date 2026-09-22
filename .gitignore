@@ -30,3 +30,7 @@ IDEAS.md
 
 # jetbrains setting folder
 .idea/
+
+# built per deploy by scripts/build-designs.mjs
+.design-builds/
+functions/design-pages.generated.js

@@ -1,0 +1,151 @@
+---
+// Pick the site design. Each option is a plain link (/settings/?design=<name>): the Pages
+// function (functions/_middleware.js) saves the choice in a cookie and sends the reader home,
+// so it works without JavaScript. Every design is built on every deploy (build-designs.mjs);
+// this page is rendered once per design, so DESIGN here is the one the reader is looking at.
+import BaseHead from '../components/BaseHead.astro';
+import Footer from '../components/Footer.astro';
+import Header from '../components/Header.astro';
+import { DESIGN, DESIGNS, SITE_TITLE } from '../consts';
+
+const INFO: Record<(typeof DESIGNS)[number], { name: string; line: string; swatch: string[] }> = {
+	receipt: {
+		name: 'Receipt',
+		line: 'Paper on a green cutting mat. Every post is a line item, priced in turns.',
+		swatch: ['#1f5c48', '#fffdf8', '#16a34a', '#2563eb', '#9333ea', '#ea580c'],
+	},
+	transit: {
+		name: 'Transit',
+		line: 'A network map. Posts are stations on the line for how they were made.',
+		swatch: ['#f7f4ec', '#16181d', '#14925a', '#1f63d6', '#8a3fd1', '#ea7a12'],
+	},
+	classic: {
+		name: 'Classic',
+		line: 'The original: warm paper, one orange accent, nothing in the way.',
+		swatch: ['#fdfbf8', '#121216', '#6e6e7a', '#e9e7e2', '#ea580c', '#c2410c'],
+	},
+};
+// Show the live default first, then the rest in the order they were made.
+const order = [...DESIGNS].sort((a, b) => (a === 'receipt' ? -1 : b === 'receipt' ? 1 : 0));
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<BaseHead title={`Settings · ${SITE_TITLE}`} description="Pick how this site looks." />
+	</head>
+	<body>
+		<Header />
+		<main class="settings">
+			<h1>Settings</h1>
+			<p class="lede">Pick how this site looks. Your choice is saved on this device. Light and dark mode is the moon/sun button in the header.</p>
+			<h2>Design</h2>
+			<ul class="designs">
+				{
+					order.map((d) => (
+						<li>
+							<a class:list={['opt', { current: d === DESIGN }]} href={`/settings/?design=${d}`} aria-current={d === DESIGN ? 'true' : undefined}>
+								<span class="swatch" aria-hidden="true">
+									{INFO[d].swatch.map((c) => (
+										<i style={`background:${c}`} />
+									))}
+								</span>
+								<span class="txt">
+									<b>
+										{INFO[d].name}
+										{d === DESIGN && <span class="badge">Current</span>}
+									</b>
+									<span>{INFO[d].line}</span>
+								</span>
+							</a>
+						</li>
+					))
+				}
+			</ul>
+		</main>
+		<Footer />
+	</body>
+</html>
+
+<style>
+	main.settings {
+		width: 680px;
+		max-width: calc(100% - 2em);
+	}
+	h1 {
+		margin: 0 0 0.3em;
+	}
+	.lede {
+		color: rgb(var(--gray));
+		margin: 0 0 2em;
+	}
+	h2 {
+		font-size: 0.85rem;
+		text-transform: uppercase;
+		letter-spacing: 0.12em;
+		color: rgb(var(--gray));
+		margin: 0 0 1em;
+	}
+	.designs {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		display: grid;
+		gap: 14px;
+	}
+	.opt {
+		display: grid;
+		grid-template-columns: 132px 1fr;
+		gap: 18px;
+		align-items: center;
+		padding: 14px;
+		border: 2px solid rgb(var(--border));
+		border-radius: 12px;
+		background: rgb(var(--surface));
+		color: rgb(var(--black));
+		text-decoration: none;
+	}
+	.opt:hover {
+		border-color: rgb(var(--gray));
+	}
+	.opt.current {
+		border-color: rgb(var(--black));
+	}
+	.swatch {
+		display: grid;
+		grid-template-columns: repeat(6, 1fr);
+		height: 44px;
+		border-radius: 8px;
+		overflow: hidden;
+		border: 1px solid rgba(0, 0, 0, 0.12);
+	}
+	.txt b {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		font-size: 1.15rem;
+	}
+	.txt > span {
+		display: block;
+		color: rgb(var(--gray));
+		font-size: 0.95rem;
+		line-height: 1.45;
+		margin-top: 2px;
+	}
+	.badge {
+		font-size: 0.7rem;
+		font-weight: 700;
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+		padding: 2px 8px;
+		border-radius: 999px;
+		background: rgb(var(--black));
+		color: rgb(var(--surface));
+	}
+	@media (max-width: 520px) {
+		.opt {
+			grid-template-columns: 1fr;
+			gap: 10px;
+		}
+	}
+</style>
