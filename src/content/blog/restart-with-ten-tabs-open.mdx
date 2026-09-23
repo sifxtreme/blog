@@ -1,0 +1,61 @@
+---
+title: 'Damn it My Computer needs to Restart, BUT I have 10 TABS OPEN'
+description: "I hate restarting my computer, mostly because of the tabs. Here's the small tool that brings my exact iTerm2 + Claude Code sessions back afterward."
+problem: 'Get my exact terminal tabs and Claude Code sessions back after a Mac restart.'
+pubDate: '2026-09-22'
+tags: ['claude', 'automation', 'macos']
+aiUsage: 'assisted'
+telemetry:
+  model: 'claude-opus-4-8'
+  ccVersion: '2.1.280'
+  liveAfterMin: 1
+  redeploys: 1
+  instructions: 0
+  turns: 12
+  toolCalls: 5
+  compacts: 0
+  phoneRelayed: false
+pangram:
+  verdict: 'AI'
+  human: 23
+  assisted: 0
+  ai: 77
+  model: 'v4.0'
+  checkedOn: '2026-09-22'
+---
+
+import CodeLink from '../../components/CodeLink.astro';
+
+<CodeLink href="https://gist.github.com/sifxtreme/fe334f486a2e9aea6f84232c0e1e5120" label="the gist" />
+
+I hate restarting my computer.
+
+But sometimes it's inevitable. Here's what I did to make this terror a little bit more palatable.
+
+This morning was one of those times. macOS wanted a restart, and I had about 10 iTerm2 tabs open — most of them Claude Code sessions I'd been running for hours (Claude Code is Anthropic's terminal coding agent). A restart wipes all of it, and I didn't want "roughly the same terminals" back. I wanted the EXACT same tabs, in the same order, each one resumed on the same conversation.
+
+So I built a small tool to do it. Here's the idea it's built on.
+
+## The tab is not the work
+
+A terminal tab feels like the thing you'd lose. It isn't. The work is the Claude Code conversation, and that conversation is written to disk as it happens — every session lives at `~/.claude/projects/<project>/<uuid>.jsonl`. That file is there whether the tab is open or not. Close the tab, quit the whole terminal, reboot the machine: the transcript stays. The one command that brings it back is `claude --resume <uuid>`.
+
+So "save my tabs" really means: for each tab, find its transcript UUID and its working directory, and write down `cd <cwd> && claude --resume <uuid>`. Do that in tab order and you can rebuild the exact window.
+
+## The tools
+
+Three scripts and a LaunchAgent. They're macOS + iTerm2 specific — the tab ordering comes from AppleScript — so this won't work on another terminal, or on Linux or Windows. You also need Claude Code and Python 3. tmux is optional.
+
+**`save-tabs`** writes `~/.claude/session-backups/RESTORE.md` (plus a JSON version). It walks every iTerm2 tab in order and, for each, writes its `claude --resume` command. It also records the last-activity time and the last message on that tab — the assistant's last line and my last prompt — so the doc reads like something a human can scan, not just a list of UUIDs.
+
+**`restore-tabs`** reopens each session in a new iTerm2 tab, in the original order. It won't double-resume: if a session is already live in another tab, it skips it, because two Claude processes writing one transcript step on each other. It names each tab and confirms `claude` actually launched before moving on.
+
+**`reboot-nudge`** is sourced from `~/.zshrc`. On the first shell after a reboot, if tabs were open beforehand, it prints a one-line reminder. Otherwise it stays quiet.
+
+And the safety net: a LaunchAgent runs `save-tabs` every 15 minutes, so an unplanned reboot still has a recent doc. It never overwrites a good doc with an empty run.
+
+## Get it
+
+It's all in [the gist](https://gist.github.com/sifxtreme/fe334f486a2e9aea6f84232c0e1e5120). The README has the exact behavior for each script. Requirements, so nobody's surprised: macOS, iTerm2, Claude Code, Python 3, tmux optional.
+
+Now when macOS nags me to restart, I run one command, hit restart, and run one more when it's back. Same ten tabs, same conversations, same order.
