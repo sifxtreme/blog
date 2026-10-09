@@ -1,0 +1,100 @@
+---
+title: 'My work day, as a crochet puppet'
+description: "I wanted one day of Claude Code sessions to become a 15-second animated story. Keeping the cartoon me the same man across five shots took one trick. Finding a story worth animating is the part I haven't solved."
+problem: 'Can a day of Claude Code sessions become a 15-second story someone would actually watch?'
+pubDate: '2026-10-09'
+tags: ['ai', 'video', 'claude']
+aiUsage: 'ai-written'
+telemetry:
+  model: 'claude-opus-5-5'
+  ccVersion: '2.1.295'
+  liveAfterMin: 7
+  redeploys: 1
+  instructions: 1
+  turns: 69
+  toolCalls: 36
+  compacts: 0
+  phoneRelayed: false
+---
+
+import StatTable from '../../components/StatTable.astro';
+import Video from '../../components/Video.astro';
+
+Every night a job on my home server reads every Claude Code session I ran that day and writes a recap, and every morning I turn that recap into a short "shipped today" tweet. On Thursday it found 16 sessions and 102 commits. I wanted to see if one of those days could be a 15-second animated clip instead of a bulleted list, starring a cartoon version of me.
+
+<Video
+	src="/media/story-video-doc-crochet.mp4"
+	poster="/media/story-video-doc-crochet.jpg"
+	caption="Thursday, narrated like a nature documentary. 5 shots, 3 seconds each."
+/>
+
+## The recap was missing part of my day
+
+Before any video, I checked whether the recap even saw the whole day, and it didn't. It ran at 10 PM, so anything later never made it in, and it dropped the 13 jobs my AI assistants ran for me in the background. Fixed, Thursday went from 16 sessions to 28. You can't tell the story of a day you can't see.
+
+## Pick a face before anything moves
+
+I have Higgsfield and Runway for a year through Lenny's Product Pass, and both now ship MCP connectors, so Claude Code could drive them directly against the plan credits. I gave it one photo and asked for seven styles. Each test image cost half a Higgsfield credit.
+
+![My photo, then Wind Waker, crochet puppet, bright cartoon, Fullmetal Alchemist, Samurai Champloo, Stardew Valley and Ghibli versions](/media/story-video-styles.jpg)
+
+Two of them failed in ways worth knowing about. The anime styles kept coming back as a painted photo, because the model holds on to the reference too hard. And Stardew looked perfect as a still, but pixel art smears the moment a video model touches it, since nothing in the model knows the pixels are supposed to stay on a grid. The crochet puppet won on the first try.
+
+## The nose problem
+
+The first anime clip looked great for one second. By the middle of the shot the beard had shrunk to a goatee and the simple anime nose had turned into a realistic one with nostrils, and it was a different man.
+
+![Top: one reference image, the face drifts. Bottom: three reference views, the face holds.](/media/story-video-drift.jpg)
+
+The cause is simple once you see it. The model got ONE picture of the face, and the moment the head turns it has to invent the angles it never saw, so it guessed "generic anime guy." The fix is to make a three-quarter view and a side view first, then pass all three as references on every shot.
+
+![Front, three-quarter and side views for the crochet puppet and the anime version](/media/story-video-views.jpg)
+
+The crochet puppet never drifted, even before the fix. It's the same reason sports mascots wear giant heads: a big, simple shape reads the same from every seat, and a felt nose and a yarn beard are very hard for a model to get wrong.
+
+## Five beats, three seconds each
+
+The story was the AI that wrote investor bios, beautifully, and made half of it up, so I made a rule that every fact has to quote its source page or it gets thrown out. That turns into five shots you can SEE: typing happily, impressed, a page flashing red, stamping pages into the trash, leaning back at sunrise.
+
+![The five crochet keyframes, one per beat](/media/story-video-keyframes.png)
+
+Each keyframe is an image made with the three views as references, and then each one becomes a 3-second shot on Runway. I kept all text out of the generated images, because AI-drawn letters come out garbled, so every caption is a PNG laid over the video by ffmpeg afterward. One more trap: the word "Pokemon" in a prompt got a clip blocked by moderation, and describing the style instead ("bright 2D cartoon, thick outlines") went straight through.
+
+## The story layer is free
+
+Once the shots exist, the words on top cost almost nothing to change. The same footage became greentext captions, a nature documentary narrator, and RPG text boxes with a level-up chime, for 16 credits of voice and music. Every version keeps text on screen, because X autoplays with the sound off.
+
+<Video
+	src="/media/story-video-quest-anime.mp4"
+	poster="/media/story-video-quest-anime.jpg"
+	caption="Same day, anime style, as video game text boxes."
+/>
+
+<Video
+	src="/media/story-video-story-cartoon.mp4"
+	poster="/media/story-video-story-cartoon.jpg"
+	caption="Same day, cartoon style, as greentext."
+/>
+
+<StatTable
+	caption="one afternoon, three styles, six finished videos"
+	rows={[
+		{ label: 'Images generated', value: '31', note: '15.5 Higgsfield credits' },
+		{ label: 'Runway credits spent', value: '~990', note: '44% of one month' },
+		{ label: 'One finished video', value: '~210 credits', note: 'about 9% of a month' },
+		{ label: 'First style test to six videos', value: '~50 min', note: 'mostly waiting on renders' },
+		{ label: 'Cash spent', value: '$0', note: 'about $10 at Runway top-up rates' },
+	]}
+/>
+
+## How you'd do it
+
+Lock the character before you pay for any motion: one front view, then a three-quarter and a side view made from the front view, all checked side by side. Then write five beats that are actions, because "fixed a parser" can't be animated and "stamps a page into the trash" can. Keep words out of the pixels and add them in code. And pass all three views on every single shot, not just the first one.
+
+## The part I didn't solve
+
+The video tools took an afternoon to learn. The story took longer, and it's still the weak link. Thursday's story was the fourth one I tried, picked out of summaries that were written to record what happened, not to explain why anyone would care. So the next change is upstream: the nightly recap should hand me three story cards, each with what I wanted, what got in the way, the turn and the payoff.
+
+The model will animate anything I give it. It just can't tell me which part of my day was a story.
+
+*The telemetry below starts when this post's draft file was created, so it doesn't count the afternoon of style tests and renders before that.*
