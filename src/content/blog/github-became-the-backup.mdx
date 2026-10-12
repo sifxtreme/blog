@@ -106,8 +106,6 @@ Once the repo was off the API the rest of the old setup looked kind of silly, so
 	]}
 />
 
-There's still unfinished plumbing. The box pushes to GitHub with my personal SSH key, because a narrow deploy key is a later fix, and nothing on GitHub's side stops another client from pushing yet either. In practice none of them do, and the box pings me if a direct push touches the AIs' instructions.
-
 ## The code
 
 I put the parts that travel in the [gist](https://gist.github.com/sifxtreme/e699d973db926a995df8a1ccd61c9044), with nothing from my house in them. There's a lane token map with path scopes for a Worker and a single-writer `POST /commit` in Go, which checks `if_match` per file and moves the branch by compare-and-swap. It also has a note on getting R2 keys from a Cloudflare API token.
