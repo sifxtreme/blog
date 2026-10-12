@@ -9,7 +9,7 @@ telemetry:
   model: 'claude-opus-5-5'
   ccVersion: '2.1.296'
   liveAfterMin: 22
-  redeploys: 3
+  redeploys: 4
   instructions: 5
   turns: 118
   toolCalls: 68
@@ -44,7 +44,7 @@ Then the house grew to five AIs, and my Mac sessions and CLIs were pushing to th
 
 ## The limit belongs to the user
 
-On Sunday Dispatch's token hit 5,000 of 5,000, but the error didn't say the token had run out of calls. It said the rate limit was exceeded for my user ID. GitHub counts per user, which means Dispatch, my `gh` logins and every other token on my account share the same bucket of 5,000 calls an hour.
+That afternoon Dispatch's token sat at 5,000 of 5,000, but the error didn't say the token had run out of calls. It said the rate limit was exceeded for my user ID. GitHub counts per user, which means Dispatch, my `gh` logins and every other token on my account share the same bucket of 5,000 calls an hour.
 
 Search was the likeliest spender. Dispatch's `/grep` paged through the repo file by file over the API, and a full sweep cost about 4,500 calls. One curious AI could spend most of the hour answering one question, after which every AI in the house would get a 502 for the rest of it.
 
@@ -54,9 +54,9 @@ So yeah, I'd built search on an API that's meant for the occasional call. Took f
 
 We started with the obvious fix: put one metered door in front of every GitHub call, add ETag 304s and a blob-sha cache so repeat reads were free, and give `/grep` an hourly budget. It helped, but the meter only saw Dispatch's share. I was measuring a bucket I didn't own.
 
-The next plan was to move the repo's origin onto the Forge box, the always-on Mac at home, and leave everything else alone. That one lasted 28 minutes. When I read it back, I could see I'd kept the old design and changed the host, so I told Claude Code what I actually wanted: "we have the opportunity to radically improve this for our usage and the future. we can tell the AIs to conform."
+If I couldn't meter my way out, the repo had to come off the API. My first plan for that moved the repo's origin onto the Forge box, the always-on Mac at home, and left everything else alone. It lasted 28 minutes. When I read it back, I could see I'd kept the old design and changed the host, so I told Claude Code what I actually wanted: "we have the opportunity to radically improve this for our usage and the future. we can tell the AIs to conform."
 
-And then, because I'm not brave: "we still need to use github as a backup."
+I kept one safety net: "we still need to use github as a backup." That sentence ended up as the whole design, and the title of this post.
 
 <Diagram
 	name="github-became-the-backup/before-after"
@@ -84,7 +84,7 @@ We cut more than we built. There was a write queue in the plan, inside the Worke
 
 ## No v2
 
-I didn't want to spend forever with `/v2` sitting next to `/v1`: "I do not like the concept of v2 without a deprecation of v1." I control every client, so we could do the cutover the same day. The plan was to switch each client and watch the meter until no AI called the old route, then turn it off.
+With the new path working, the old one had to go. I didn't want to spend forever with `/v2` sitting next to `/v1`: "I do not like the concept of v2 without a deprecation of v1." I control every client, so we could do the cutover the same day. The plan was to switch each client and watch the meter until no AI called the old route, then turn it off.
 
 But before doing that, I wanted to know whether the box could die without taking the house with it. We stopped it for 5 minutes and hit both hosts the whole time, collecting 78 samples. Reads came back from the GitHub fallback and writes went through. The two routes that need the box answered 503 with a retry time, as they're supposed to, and the box was healthy 4 seconds after the restart. There were zero unexpected errors.
 
@@ -92,7 +92,9 @@ At 7:23 PM, every old route started answering `410 Gone` for every lane, with a 
 
 ## What it bought us
 
-Once the repo was off the API the rest of the old setup looked kind of silly, so Monday was cleanup. The mail archive's write path moved from S3 to Cloudflare R2, and a new nightly job called `dbbackup` takes 24 SQLite databases, compresses and encrypts them, and puts them in R2. We also terminated the old EC2 server from my previous finance app, saving about $8 a month.
+The big one: GitHub's hourly limit no longer decides whether the house works. The AIs read and write against the box, GitHub gets a push after each commit, and if the box goes down, reads fall back to GitHub while writes wait in an outbox. Every commit is signed by the AI that made it, so "who did this?" is one `git log` away.
+
+Once the repo was off the API, the rest of the old setup looked kind of silly, so Monday was cleanup. The mail archive's write path moved from S3 to Cloudflare R2, and a new nightly job called `dbbackup` takes 24 SQLite databases, compresses and encrypts them, and puts them in R2. We also terminated the old EC2 server from my previous finance app, saving about $8 a month.
 
 <StatTable
 	caption="counted from the commits and the changelog"
