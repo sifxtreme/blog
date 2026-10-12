@@ -1,0 +1,28 @@
+# Before vs after: where bifrost actually lives.
+grid-columns: 2
+grid-gap: 60
+
+before: "Before · GitHub is the database" {
+  class: zone
+  direction: down
+  ais: { shape: rectangle; class: dim; label: |md **5 AIs**<br/>each with a lane token | }
+  w: { shape: rectangle; label: |md **Dispatch Worker**<br/>checks the lane, holds the GitHub token | }
+  gh: { shape: rectangle; class: accent; label: |md **GitHub REST API**<br/>~5 calls per write<br/>5,000 calls / hour per USER | }
+  mac: { shape: rectangle; class: dim; label: |md **Mac sessions**<br/>git pull loops + direct pushes | }
+  ais -> w: "every read and write"
+  w -> gh: "502 when the bucket is empty" {class: bad}
+  mac -> gh: "polling, conflict retries" {class: dash}
+}
+
+after: "After · GitHub is the backup" {
+  class: zone
+  direction: down
+  ais: { shape: rectangle; class: dim; label: |md **5 AIs**<br/>same lanes, new routes | }
+  w: { shape: rectangle; label: |md **Dispatch Worker**<br/>front door: lanes, /me, /commit | }
+  box: { shape: rectangle; class: accent; label: |md **bifrostd** · Forge box<br/>git clone + SQLite, ONE writer | }
+  gh: { shape: rectangle; class: dim; label: |md **GitHub**<br/>backup + read fallback | }
+  ais -> w: "every read and write"
+  w -> box: "Cloudflare tunnel" {class: accent}
+  box -> gh: "push every signed commit" {class: accent}
+  w -> gh: "reads only, if the box is down" {class: dash}
+}

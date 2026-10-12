@@ -1,0 +1,11 @@
+# Two AIs, one reminder, one ring.
+direction: down
+a: { shape: rectangle; label: |md **Cortana**<br/>reads ring fields from /items | }
+b: { shape: rectangle; label: |md **Instinct**<br/>reads ring fields from /items | }
+srv: { shape: rectangle; class: accent; label: |md **bifrostd**<br/>POST /items/id/rung<br/>rang in the last 2 h? | }
+push: { shape: rectangle; class: accent; label: |md **ring the phone**<br/>claim first, then push | }
+skip: { shape: rectangle; class: [dim; dash]; label: |md **no push**<br/>the other AI already rang | }
+a -> srv: "claim" {class: accent}
+b -> srv: "claim" {class: dim}
+srv -> push: "claim accepted" {class: accent}
+srv -> skip: "refused: cross-agent dedupe" {class: dash}

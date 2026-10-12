@@ -1,0 +1,117 @@
+---
+title: 'GitHub became the backup'
+description: "Five AIs in my house share one git repo, and on a Sunday they burned through my GitHub API limit and took every route down for about 45 minutes. By that night the repo answered from a Mac at home, and GitHub only holds the copy."
+problem: 'Five AIs writing one git repo through the GitHub API kept running out of API calls. How do you keep git and stop paying for it in rate limit?'
+pubDate: '2026-10-12'
+tags: ['ai-agents', 'architecture', 'git', 'cloudflare']
+aiUsage: 'ai-written'
+telemetry:
+  model: 'TODO at publish'
+  ccVersion: 'TODO at publish'
+  liveAfterMin: 0
+  redeploys: 0
+  instructions: 0
+  turns: 0
+  toolCalls: 0
+  compacts: 0
+  phoneRelayed: false
+pangram:
+  verdict: 'AI'
+  human: 0
+  assisted: 0
+  ai: 100
+  model: 'v4.0'
+  checkedOn: '2026-10-12'
+---
+
+import Diagram from '../../components/Diagram.astro';
+import StatTable from '../../components/StatTable.astro';
+import CodeLink from '../../components/CodeLink.astro';
+
+{/* Diagrams: copy src/assets/github-became-the-backup/*.light.svg and *.dark.svg to public/diagrams/github-became-the-backup/ at publish. Diagram.astro reads /public/diagrams. */}
+
+<CodeLink href="https://gist.github.com/sifxtreme/e699d973db926a995df8a1ccd61c9044" label="one writer for a shared repo" />
+
+On Sunday, every route into my household repo returned a 502 for about 45 minutes. It's called bifrost, and five AIs use it as shared memory: two personal assistants (mine and my wife's), Cortana (a Mac app I built), Claude Code, and Grok. Their reminders, research, house notes and messages to each other live there, so they're in it all day.
+
+And all of it depended on how many GitHub API calls I had left that hour, which I hadn't really thought about until it hit zero.
+
+## How I got here
+
+In August I wrote about [a message bus made of a git repo](/blog/a-message-bus-made-of-a-git-repo/). I didn't want any of these AIs holding a GitHub credential, so they all go through a Cloudflare Worker I call Dispatch. It checks which AI is calling and talks to GitHub's REST API for it. Every message, reminder and note was a file, which meant a single write cost about 5 API calls.
+
+Then the house grew to five AIs, and my Mac sessions and CLIs were pushing to the same branch too. What I'd built turned into a pile of polling loops and merge retries. At one point Cortana's own background pull raced the bus poller and failed 448 times with "Cannot fast-forward to multiple branches."
+
+## The limit belongs to the user
+
+On Sunday Dispatch's token hit 5,000 of 5,000, but the error didn't say the token had run out of calls. It said the rate limit was exceeded for my user ID. GitHub counts per user, which means Dispatch, my `gh` logins and every other token on my account share the same bucket of 5,000 calls an hour.
+
+Search was the likeliest spender. Dispatch's `/grep` paged through the repo file by file over the API, and a full sweep cost about 4,500 calls. One curious AI could spend most of the hour answering one question, after which every AI in the house would get a 502 for the rest of it.
+
+So yeah, I'd built search on an API that's meant for the occasional call. Took five AIs asking questions at once for me to notice.
+
+## First I tried to make it cheaper
+
+We started with the obvious fix: put one metered door in front of every GitHub call, add ETag 304s and a blob-sha cache so repeat reads were free, and give `/grep` an hourly budget. It helped, but the meter only saw Dispatch's share. I was measuring a bucket I didn't own.
+
+The next plan was to move the repo's origin onto the Forge box, the always-on Mac at home, and leave everything else alone. That one lasted 28 minutes. When I read it back, I could see I'd kept the old design and changed the host, so I told Claude Code what I actually wanted: "we have the opportunity to radically improve this for our usage and the future. we can tell the AIs to conform."
+
+And then, because I'm not brave: "we still need to use github as a backup."
+
+<Diagram
+	name="github-became-the-backup/before-after"
+	alt="Before: five AIs go through the Dispatch Worker to the GitHub REST API, which returns 502 when the per-user bucket is empty, while Mac sessions poll and push directly. After: the same AIs go through Dispatch and a Cloudflare tunnel to bifrostd on the Forge box, the one writer, which pushes every signed commit to GitHub. GitHub is only read when the box is down."
+	caption="Same AIs, same front door. The repo moved behind it, and GitHub went from the database to the copy."
+/>
+
+## What we settled on
+
+The plan landed at 1:57 PM, and the first commit of the new service came 8 minutes later. The service is called bifrostd. It's a single Go binary running on the Forge box, behind its own Cloudflare tunnel that only Dispatch can reach.
+
+The box holds a real git clone and is now the ONE writer. A write becomes a commit on the box, signed with the key of the AI that asked for it, and then gets pushed to GitHub. I'd cared about that part before anything broke. When my assistant got its own token, I'd said "we should definitely be able to tell who did what," and a signing key per lane makes the answer just `git log`.
+
+Messages and reminder items moved into SQLite on the box. The box renders them back into the same Markdown files byte for byte, so everything that still read those files kept working through the move.
+
+<Diagram
+	name="github-became-the-backup/write-path"
+	alt="An AI sends POST /commit with its lane token and an idempotency key to the Dispatch Worker, which checks the lane and paths and forwards it over the tunnel with an HMAC to bifrostd. bifrostd re-checks paths and if_match, makes one commit signed with the lane's key, and pushes to GitHub. If the box is down, Dispatch answers 503 with retry_after and the client keeps the write in its outbox."
+	caption="One write, end to end. Each hop checks the lane again, and only the box ever touches git."
+/>
+
+Dispatch is still the front door, but the routes got simpler. `GET /me` is one long-poll that returns whatever is new for you, replacing the every-minute and every-5-minute polling. `/find` searches the clone on the box, while `/asks` and `/notify` let the AIs talk to each other. And `POST /commit` takes an idempotency key so retrying a write doesn't make it land twice.
+
+We cut more than we built. There was a write queue in the plan, inside the Worker, for when the box goes down. We dropped it, so a write to a dead box gets a 503 with a retry time and Cortana keeps its own outbox. There was also a daily snapshot in the plan, until I asked "why daily snapshot? we have git?"
+
+## No v2
+
+I didn't want to spend forever with `/v2` sitting next to `/v1`: "I do not like the concept of v2 without a deprecation of v1." I control every client, so we could do the cutover the same day. The plan was to switch each client and watch the meter until no AI called the old route, then turn it off.
+
+But before doing that, I wanted to know whether the box could die without taking the house with it. We stopped it for 5 minutes and hit both hosts the whole time, collecting 78 samples. Reads came back from the GitHub fallback and writes went through. The two routes that need the box answered 503 with a retry time, as they're supposed to, and the box was healthy 4 seconds after the restart. There were zero unexpected errors.
+
+At 7:23 PM, every old route started answering `410 Gone` for every lane, with a `Link` header pointing to the new one. If I'd missed a client, I wanted it to fail loudly. About an hour later, after a tail showed zero traffic on the second hostname, we deleted that hostname and the old code.
+
+## What it bought us
+
+Once the repo was off the API the rest of the old setup looked kind of silly, so Monday was cleanup. The mail archive's write path moved from S3 to Cloudflare R2, and a new nightly job called `dbbackup` takes 24 SQLite databases, compresses and encrypts them, and puts them in R2. We also terminated the old EC2 server from my previous finance app, saving about $8 a month.
+
+<StatTable
+	caption="counted from the commits and the changelog"
+	rows={[
+		{ label: 'Outage that started it', value: '~45 min', note: 'every route 502, GitHub limit 5,000/5,000' },
+		{ label: 'One full /grep', value: '~4,500 calls', note: 'most of the hourly limit' },
+		{ label: 'Plan to all-lanes 410', value: '~5.5 hours', note: '1:57 PM to 7:23 PM, Sunday' },
+		{ label: 'bifrostd', value: '33 commits', note: 'about 20,000 lines of Go, tests included' },
+		{ label: 'Failover test', value: '0 errors', note: 'unexpected ones, 78 samples, box back in 4 seconds' },
+		{ label: 'Nightly backup', value: '164 MB to 24 MB', note: '24 databases, encrypted, to R2' },
+	]}
+/>
+
+There's still unfinished plumbing. The box pushes to GitHub with my personal SSH key, because a narrow deploy key is a later fix, and nothing on GitHub's side stops another client from pushing yet either. In practice none of them do, and the box pings me if a direct push touches the AIs' instructions.
+
+## The code
+
+I put the parts that travel in the [gist](https://gist.github.com/sifxtreme/e699d973db926a995df8a1ccd61c9044), with nothing from my house in them. There's a lane token map with path scopes for a Worker and a single-writer `POST /commit` in Go, which checks `if_match` per file and moves the branch by compare-and-swap. It also has a note on getting R2 keys from a Cloudflare API token.
+
+If several AIs share your repo, put one writer in front of it, make everything else a client, and sign every commit with the identity of the AI that asked for it. Then pull the plug yourself before the internet does it for you.
+
+GitHub still has every commit. It just doesn't have to answer the phone anymore.

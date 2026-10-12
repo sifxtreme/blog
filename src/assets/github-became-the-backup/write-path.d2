@@ -1,0 +1,13 @@
+# One write, end to end.
+direction: down
+ai: { shape: rectangle; class: dim; label: |md **An AI**<br/>Bearer lane token<br/>Idempotency-Key | }
+w: { shape: rectangle; label: |md **Dispatch Worker**<br/>which lane? which paths? | }
+box: { shape: rectangle; class: accent; label: |md **bifrostd**<br/>re-checks paths<br/>if_match on each file | }
+git: { shape: rectangle; class: accent; label: |md **git commit**<br/>signed with that<br/>lane's own key | }
+gh: { shape: rectangle; class: dim; label: |md **GitHub**<br/>the mirror | }
+outbox: { shape: rectangle; class: [dim; dash]; label: |md **client outbox**<br/>send it again later | }
+ai -> w: "POST /commit" {class: accent}
+w -> box: "tunnel + HMAC" {class: accent}
+box -> git: "one commit, no worktree" {class: accent}
+git -> gh: "push" {class: accent}
+w -> outbox: "box down: 503 + retry_after" {class: dash}
