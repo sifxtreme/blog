@@ -1,0 +1,57 @@
+---
+// Real 404 page: Cloudflare Pages serves dist/404.html with status 404 for unknown URLs
+// (once the project has no SPA / 200 fallback). Same chrome as the Writing index.
+import { getCollection } from 'astro:content';
+import BaseHead from '../components/BaseHead.astro';
+import Footer from '../components/Footer.astro';
+import Header from '../components/Header.astro';
+import { SITE_TITLE } from '../consts';
+
+const latest = (await getCollection('blog'))
+	.sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf())
+	.slice(0, 5);
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<BaseHead title={`Page not found · ${SITE_TITLE}`} description="That URL is not a page on this site." noindex />
+	</head>
+	<body>
+		<Header />
+		<main>
+			<header class="page-head">
+				<h1>Page not found</h1>
+				<p>Nothing lives at this URL. It may have moved, or never existed.</p>
+			</header>
+			<p>Try the <a href="/blog/">full writing index</a> or the <a href="/">home page</a>. The latest posts:</p>
+			<ul class="latest">
+				{latest.map((post) => <li><a href={`/blog/${post.id}/`}>{post.data.title}</a></li>)}
+			</ul>
+		</main>
+		<Footer />
+	</body>
+</html>
+
+<style>
+	.page-head {
+		padding: 1em 0 2em;
+		border-bottom: 1px solid rgb(var(--border));
+		margin-bottom: 1em;
+	}
+	.page-head h1 {
+		font-size: 2.4rem;
+		margin-bottom: 0.25em;
+	}
+	.page-head p {
+		color: rgb(var(--gray));
+		margin: 0;
+		font-size: 1.05rem;
+	}
+	.latest {
+		padding-left: 1.2em;
+	}
+	.latest li {
+		margin: 0.4em 0;
+	}
+</style>

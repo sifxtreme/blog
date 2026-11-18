@@ -84,7 +84,7 @@ const hasAside = Boolean(telemetry || pangram);
 
 <html lang="en">
 	<head>
-		<BaseHead title={title} description={description} ogImagePath={ogImagePath} />
+		<BaseHead title={title} description={description} ogImagePath={ogImagePath} article={slug ? { pubDate, updatedDate, tags } : undefined} />
 	</head>
 
 	<body>
