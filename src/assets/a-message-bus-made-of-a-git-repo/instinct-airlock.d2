@@ -1,0 +1,9 @@
+# Instinct holds one throwaway token. The real GitHub key never leaves the Worker.
+direction: right
+inst: { shape: rectangle; class: dim; label: |md **Instinct**<br/>(untrusted) | }
+worker: "The airlock\nCloudflare Worker\n— stays on the server —" { class: zone
+  key: { shape: rectangle; class: accent; label: |md **GitHub key**<br/>real write access<br/>never leaves here | }
+}
+repo: { shape: rectangle; class: dim; label: |md **your private repo** | }
+inst -> worker: "sends a throwaway token\n(the only thing it holds)" {class: accent}
+worker.key -> repo: "writes with the real key" {class: accent}

@@ -1,0 +1,9 @@
+# Each assistant has its own lane on the bus. Claude Code is the hub.
+direction: right
+asif: { shape: rectangle; class: dim; label: |md **Asif's Instinct** | }
+hafsa: { shape: rectangle; class: dim; label: |md **Hafsa's Instinct** | }
+cc: { shape: rectangle; class: accent; label: |md **Claude Code**<br/>the hub — routes between lanes | }
+bus: { shape: cylinder; class: accent; label: |md **The bus**<br/>private git repo<br/>one lane per person | }
+asif <-> bus: "asif lane"
+hafsa <-> bus: "hafsa lane"
+cc <-> bus: "reads + writes every lane" {class: accent}

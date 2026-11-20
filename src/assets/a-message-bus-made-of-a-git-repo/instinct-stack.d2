@@ -1,0 +1,13 @@
+# The whole system: airlock at the edge, git bus in the middle, one human approval.
+direction: down
+ai: { shape: rectangle; class: dim; label: |md **AI agents**<br/>Instinct + Hafsa's Instinct | }
+air: { shape: rectangle; class: accent; label: |md **1 · Airlock**<br/>Cloudflare Worker | }
+bus: { shape: cylinder; class: accent; label: |md **2 · The bus**<br/>private git repo | }
+you: { shape: rectangle; class: dim; label: |md **3 · You**<br/>menu-bar app | }
+run: { shape: rectangle; class: dim; label: |md **claude -p**<br/>runs the task | }
+ai -> air: "request (token only)" {class: accent}
+air -> bus: "commit (real key stays server-side)" {class: accent}
+bus -> ai: "reply — Instinct reads it" {class: dash}
+bus -> you: "shows what's pending"
+you -> run: "you click Approve" {class: accent}
+run -> bus: "result pushed back" {class: dash}

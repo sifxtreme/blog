@@ -1,0 +1,12 @@
+# How a message moves: new, seen, working, done; seen or working can stop at blocked / declined.
+direction: right
+new: { shape: rectangle; label: |md **new**<br/>just arrived | }
+seen: { shape: rectangle; label: |md **seen**<br/>you saw it | }
+working: { shape: rectangle; label: |md **working**<br/>in progress | }
+done: { shape: rectangle; class: accent; label: |md **done**<br/>handled | }
+blocked: { shape: rectangle; class: dim; label: |md **blocked / declined**<br/>reason in the note | }
+new -> seen
+seen -> working
+working -> done: "" {class: accent}
+seen -> blocked: "" {class: dash}
+working -> blocked: "" {class: dash}
