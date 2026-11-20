@@ -57,3 +57,5 @@ figure{margin:30px 0;background:var(--box);border:1px solid var(--line);border-r
 .sign .seal-owl{width:64px;height:64px;mix-blend-mode:multiply}
 @media(max-width:760px){.wrap{padding:0 20px}.hero{grid-template-columns:1fr;gap:28px;padding-top:44px}h1.big{font-size:40px}.lh{display:none}.lr{grid-template-columns:48px 1fr 40px;gap:12px}.lr .h{display:none}.making{grid-template-columns:1fr}h1.title{font-size:32px}article{padding-top:34px}.meta{gap:12px}footer{flex-direction:column;gap:6px}}
 .brand .me{width:36px;height:36px;border-radius:50%;object-fit:cover;margin-left:-4px;border:1px solid var(--paper)}
+.brand{white-space:nowrap}
+@media(max-width:760px){nav a{margin-left:14px;font-size:11px;letter-spacing:.14em}nav a:last-child{display:none}.brand{gap:8px;font-size:15px}.rl.sum{font-size:16px}header.top{padding:18px 0}}

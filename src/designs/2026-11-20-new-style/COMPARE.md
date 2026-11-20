@@ -12,7 +12,7 @@ Direction 1 is the safest. Direction 2 is the most handsome but says "family sit
 All three are static mockups. Nothing is deployed, `global.css` and the live layouts are untouched.
 
 [!ASK] Which direction, and does the seal go on the public site?
-- **Pick:** direction 3, with only the owl cropped from the seal as a small mark and sign-off, not the full lettered seal.
+- **Pick:** direction 3b (the ledger in navy and gold, his choice of colours), with only the owl cropped from the seal as a small mark and sign-off, not the full lettered seal.
 - **Why:** the full seal reads "THE AHMED FAMILY" and is unreadable below about 80 px. The owl alone is legible at 36 px and is not a family name.
 - **Risk:** any seal image on sifxtreme.com is public. It has been kept out of public repos on purpose. Nothing was copied into the blog repo; the mockups load it from its bifrost path, so they only render on this Mac.
 - **Next:** say 1, 2 or 3, and say yes or no to a public owl. Then I build it as a fourth design in `src/designs/` behind the existing `PUBLIC_DESIGN` switch.
@@ -57,7 +57,26 @@ Weak spot: it makes the seal the brand. A family seal on a work-adjacent blog is
 |---|---|
 | ![](shots/2-post-desktop.png) | ![](shots/2-post-phone.png) |
 
-### 3. Receipt ledger (my pick)
+### 3b. Receipt ledger in navy and gold (Asif liked 3, wanted more blue and gold)
+
+Same structure as 3: ledger home, receipts, small owl, his photo in the header. Colours from 2: cream paper, navy ink and rules, gold for the full stops, the series rule, the "with AI" dot, the diagram path and the receipt accents. Orange is gone, with no exceptions. "By hand" is navy, "with AI" is gold, "by AI" is a mid blue.
+Contrast: body text is navy or slate on cream (about 12:1 and 5:1). Links are navy with a gold underline, because gold text on cream is only about 2.5:1 and would fail AA.
+
+| 3 before, home | 3b after, home |
+|---|---|
+| ![](shots/3-home-desktop.png) | ![](shots/3b-home-desktop.png) |
+
+| 3 before, post | 3b after, post |
+|---|---|
+| ![](shots/3-post-desktop.png) | ![](shots/3b-post-desktop.png) |
+
+| Home, 390 | Post, 390 |
+|---|---|
+| ![](shots/3b-home-phone.png) | ![](shots/3b-post-phone.png) |
+
+What read worse in navy and gold: gold is too pale to carry small text, so "with AI" leans on its label and not the dot colour alone; the gold full stops on the small h2s are faint; navy and the mid blue are close at 8 px, so "by hand" and "by AI" dots are hard to tell apart without the label; the page feels softer and less "receipt" than the grey 776 paper.
+
+### 3. Receipt ledger (grey paper, orange)
 
 776 paper, ink and type, with one orange accent kept from today's blog and navy for the owl and for "written by AI". The home page is a ledger: date, title, how it was made, turns. A panel shows how the whole blog was made (1,611 turns; 4 by hand, 11 with AI, 10 by AI). Each post ends with its receipt as dotted-leader lines and a small owl sign-off.
 Best for: it turns his real difference into the design, and it modernises the receipt idea without the paper-tape costume.
