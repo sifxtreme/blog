@@ -45,3 +45,5 @@ figure svg{width:100%;height:auto;display:block}figcaption{font-size:13px;color:
 .d-txt{fill:var(--navy);font-family:Switzer,sans-serif;font-weight:500}.d-txt.d-sub{fill:var(--muted);font-weight:400}.d-txt.d-accent{fill:var(--navy)}
 .receipt{margin:44px 0 0;font-size:14px;color:var(--muted);border-top:1px solid var(--line);padding-top:14px}.receipt b{color:var(--navy);font-weight:500}
 @media(max-width:760px){.mast{padding-top:36px}.mast .seal-full{width:150px;height:150px}.wrap{padding:0 20px}.grid{grid-template-columns:1fr;gap:34px;padding-top:36px}h1.hero{font-size:38px}.it{grid-template-columns:40px 1fr;}.it .d{display:none}.it .t{font-size:19px}h1.title{font-size:34px}.pull{font-size:20px}.band .wrap{flex-direction:column;text-align:center}article{padding-top:36px}p.lead{font-size:19px}}
+.me{width:132px;height:132px;border-radius:50%;object-fit:cover;display:block;margin:0 0 22px;border:1px solid var(--line)}
+@media(max-width:760px){.me{width:96px;height:96px}}
