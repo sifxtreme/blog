@@ -13,3 +13,6 @@
 /blog/my-blog-is-a-receipt-now/  /blog/post-opus-5-5-fresh-design-like-a-receipt/  301
 /blog/restart-with-ten-tabs-open/  /blog/argh-my-computer-needs-to-restart-but-i-have-10-tabs-open/  301
 /blog/damn-it-my-computer-needs-to-restart-but-i-have-10-tabs-open/  /blog/argh-my-computer-needs-to-restart-but-i-have-10-tabs-open/  301
+
+# www -> apex (canonical host). Pages applies _redirects to every host the project serves.
+https://www.sifxtreme.com/*  https://sifxtreme.com/:splat  301
