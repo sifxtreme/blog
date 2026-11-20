@@ -16,7 +16,7 @@ const requested = import.meta.env.PUBLIC_DESIGN as string | undefined;
 if (requested && !DESIGNS.includes(requested as Design)) {
 	throw new Error(`PUBLIC_DESIGN="${requested}" is not one of: ${DESIGNS.join(', ')}`);
 }
-export const DESIGN: Design = (requested as Design) || 'receipt';
+export const DESIGN: Design = (requested as Design) || 'ledger'; // Asif 2026-11-20 decision 491: ledger is live
 
 // The family owl mark (src/assets/owl-navy.png, owl-cream.png for dark). Asif approved the
 // cropped owl for the public site 2026-11-20 (not the full seal with its lettering).
