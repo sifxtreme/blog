@@ -48,6 +48,7 @@ const canonicalUrl = slug
 			title={title}
 			description={description}
 			ogImagePath={ogImagePath}
+			article={slug ? { pubDate, updatedDate, tags } : undefined}
 		/>
 		<style>
 			main {

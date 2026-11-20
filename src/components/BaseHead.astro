@@ -11,10 +11,11 @@ import receiptCss from '../styles/receipt.css?url';
 import transitCss from '../styles/transit.css?url';
 
 const DESIGN_ASSETS: Partial<Record<typeof DESIGN, { css: string; fonts: string }>> = {
+	// receipt: IBM Plex Sans + JetBrains Mono are self-hosted (public/fonts, woff2 from
+	// @fontsource, latin subset) and declared in the inline @font-face below. No font CDN.
 	receipt: {
 		css: receiptCss,
-		fonts:
-			'https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;600;800&display=swap',
+		fonts: '',
 	},
 	transit: {
 		css: transitCss,
@@ -30,17 +31,63 @@ interface Props {
 	description: string;
 	image?: ImageMetadata;
 	ogImagePath?: string;
+	// Set only for real blog posts (not About): drives og:type=article and BlogPosting JSON-LD.
+	article?: { pubDate: Date; updatedDate?: Date; tags?: string[] };
+	noindex?: boolean;
 }
+
+const SELF_HOSTED_FONTS = `
+@font-face{font-family:'IBM Plex Sans';font-style:normal;font-weight:400;font-display:swap;src:url(/fonts/ibm-plex-sans-latin-400-normal.woff2) format('woff2')}
+@font-face{font-family:'IBM Plex Sans';font-style:normal;font-weight:600;font-display:swap;src:url(/fonts/ibm-plex-sans-latin-600-normal.woff2) format('woff2')}
+@font-face{font-family:'IBM Plex Sans';font-style:normal;font-weight:700;font-display:swap;src:url(/fonts/ibm-plex-sans-latin-700-normal.woff2) format('woff2')}
+@font-face{font-family:'IBM Plex Sans';font-style:italic;font-weight:400;font-display:swap;src:url(/fonts/ibm-plex-sans-latin-400-italic.woff2) format('woff2')}
+@font-face{font-family:'JetBrains Mono';font-style:normal;font-weight:400;font-display:swap;src:url(/fonts/jetbrains-mono-latin-400-normal.woff2) format('woff2')}
+@font-face{font-family:'JetBrains Mono';font-style:normal;font-weight:600;font-display:swap;src:url(/fonts/jetbrains-mono-latin-600-normal.woff2) format('woff2')}
+@font-face{font-family:'JetBrains Mono';font-style:normal;font-weight:800;font-display:swap;src:url(/fonts/jetbrains-mono-latin-800-normal.woff2) format('woff2')}
+`;
 
 const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 
-const { title, description, image, ogImagePath } = Astro.props;
+const { title: pageTitle, description, image, ogImagePath, article, noindex } = Astro.props;
+// "Title · Asif Ahmed" everywhere except where the title already carries the site name.
+const title = pageTitle.includes(SITE_TITLE) ? pageTitle : `${pageTitle} · ${SITE_TITLE}`;
+const SITE_URL = new URL('/', Astro.site).href;
+const PERSON = {
+	'@type': 'Person',
+	'@id': `${SITE_URL}#asif`,
+	name: SITE_TITLE,
+	url: SITE_URL,
+	sameAs: [
+		'https://x.com/sifxtreme',
+		'https://www.linkedin.com/in/asifhahmed',
+		'https://github.com/sifxtreme',
+	],
+};
 // Per-post card (public/og/<slug>.png) → an explicit image → branded default (public/og.png).
 const ogImage = ogImagePath
 	? new URL(ogImagePath, Astro.site).href
 	: image
 		? new URL(image.src, Astro.url).href
 		: new URL('/og.png', Astro.site).href;
+
+let jsonLd: Record<string, unknown> | undefined;
+if (article) {
+	jsonLd = {
+		'@context': 'https://schema.org',
+		'@type': 'BlogPosting',
+		headline: pageTitle,
+		description,
+		datePublished: article.pubDate.toISOString(),
+		...(article.updatedDate ? { dateModified: article.updatedDate.toISOString() } : {}),
+		author: PERSON,
+		url: canonicalURL.href,
+		mainEntityOfPage: canonicalURL.href,
+		image: ogImage,
+		...(article.tags?.length ? { keywords: article.tags.join(', ') } : {}),
+	};
+} else if (Astro.url.pathname === '/') {
+	jsonLd = { '@context': 'https://schema.org', ...PERSON, description };
+}
 ---
 
 <!-- Global Metadata -->
@@ -82,15 +129,35 @@ const ogImage = ogImagePath
 
 <Font cssVariable="--font-atkinson" preload />
 {
+	DESIGN === 'receipt' && (
+		<>
+			<link
+				rel="preload"
+				as="font"
+				type="font/woff2"
+				href="/fonts/ibm-plex-sans-latin-400-normal.woff2"
+				crossorigin
+			/>
+			<style is:inline set:html={SELF_HOSTED_FONTS} />
+		</>
+	)
+}
+{
 	designAssets && (
 		<>
-			<link rel="preconnect" href="https://fonts.googleapis.com" />
-			<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-			<link rel="stylesheet" href={designAssets.fonts} />
+			{designAssets.fonts && (
+				<>
+					<link rel="preconnect" href="https://fonts.googleapis.com" />
+					<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+					<link rel="stylesheet" href={designAssets.fonts} />
+				</>
+			)}
 			<link rel="stylesheet" href={designAssets.css} />
 		</>
 	)
 }
+{noindex && <meta name="robots" content="noindex" />}
+{jsonLd && <script is:inline type="application/ld+json" set:html={JSON.stringify(jsonLd)} />}
 
 <!-- Canonical URL -->
 <link rel="canonical" href={canonicalURL} />
@@ -100,7 +167,10 @@ const ogImage = ogImagePath
 <meta name="description" content={description} />
 
 <!-- Open Graph / Facebook -->
-<meta property="og:type" content="website" />
+<meta property="og:type" content={article ? 'article' : 'website'} />
+<meta property="og:site_name" content={SITE_TITLE} />
+{article && <meta property="article:published_time" content={article.pubDate.toISOString()} />}
+{article?.updatedDate && <meta property="article:modified_time" content={article.updatedDate.toISOString()} />}
 <meta property="og:url" content={Astro.url} />
 <meta property="og:title" content={title} />
 <meta property="og:description" content={description} />
@@ -108,6 +178,8 @@ const ogImage = ogImagePath
 
 <!-- Twitter -->
 <meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:site" content="@sifxtreme" />
+<meta name="twitter:creator" content="@sifxtreme" />
 <meta name="twitter:image" content={ogImage} />
 <meta name="twitter:title" content={title} />
 <meta name="twitter:description" content={description} />

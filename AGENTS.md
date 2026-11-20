@@ -114,7 +114,7 @@ playwright module this repo doesn't have, and its output carries no pinned typog
 
 ```bash
 cd ~/code/experiments/diagram-gen
-node render.mjs <name>.mmd --check --out ~/code/blog/public/diagrams/<name>   # light + dark
+node render.mjs <name>.mmd --pack sifxtreme --check --out ~/code/blog/public/diagrams/<name>   # light + dark
 ```
 
 Commit both `<name>.light.svg` and `<name>.dark.svg`, and embed with `<picture>` so the pair

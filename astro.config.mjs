@@ -3,7 +3,18 @@
 import mdx from '@astrojs/mdx';
 import sitemap from '@astrojs/sitemap';
 import expressiveCode from 'astro-expressive-code';
+import fs from 'node:fs';
 import { defineConfig, fontProviders } from 'astro/config';
+
+// lastmod for the sitemap: updatedDate, else pubDate, read from each post's frontmatter.
+const lastmodBySlug = new Map();
+for (const f of fs.readdirSync('./src/content/blog')) {
+	if (!/\.mdx?$/.test(f)) continue;
+	const head = fs.readFileSync(`./src/content/blog/${f}`, 'utf8').split('---')[1] ?? '';
+	const get = (k) => head.match(new RegExp(`^${k}:\\s*['"]?([0-9-]+)`, 'm'))?.[1];
+	const d = get('updatedDate') ?? get('pubDate');
+	if (d) lastmodBySlug.set(f.replace(/\.mdx?$/, ''), new Date(d).toISOString());
+}
 
 // https://astro.build/config
 export default defineConfig({
@@ -22,7 +33,15 @@ export default defineConfig({
 			},
 		}),
 		mdx(),
-		sitemap(),
+		sitemap({
+			// /settings/ is noindex; keep it out of the sitemap too.
+			filter: (page) => !/\/settings\/?$/.test(page),
+			serialize(item) {
+				const slug = item.url.match(/\/blog\/([^/]+)\/?$/)?.[1];
+				const lastmod = slug && lastmodBySlug.get(slug);
+				return lastmod ? { ...item, lastmod } : item;
+			},
+		}),
 	],
 	fonts: [
 		{

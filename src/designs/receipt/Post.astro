@@ -47,7 +47,7 @@ const receiptNo = `${String(pubDate.getUTCMonth() + 1).padStart(2, '0')}${String
 
 <html lang="en">
 	<head>
-		<BaseHead title={title} description={description} ogImagePath={ogImagePath} />
+		<BaseHead title={title} description={description} ogImagePath={ogImagePath} article={slug ? { pubDate, updatedDate, tags } : undefined} />
 	</head>
 
 	<body>
