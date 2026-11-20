@@ -9,7 +9,6 @@ updated: 2026-11-20
 
 Pick direction 3, the receipt ledger: it is the only one that looks like nothing else on the web, because it shows what already makes the blog his.
 Direction 1 is the safest. Direction 2 is the most handsome but says "family site", not "Asif's notes".
-His profile photo (`src/assets/asif-head.png`, the one on the live home page) is on every home page: right of the headline in 1, above his name in 2, next to the name in the header in 3, with the owl as the site mark. The live post pages do not show it, so only 3 carries it in the post header.
 All three are static mockups. Nothing is deployed, `global.css` and the live layouts are untouched.
 
 [!ASK] Which direction, and does the seal go on the public site?
@@ -27,6 +26,8 @@ All three are static mockups. Nothing is deployed, `global.css` and the live lay
 - **It has already been redesigned in public.** The live default is the receipt style, and a post about how Opus 5.5 made it is on the blog. The 776 look would be the second chapter, not a replacement.
 
 ## The three directions
+
+His profile photo (`src/assets/asif-head.png`, the one on the live home page) is on every home page: right of the headline in 1, above his name in 2, next to the name in the header in 3 with the owl as the site mark. The live post pages do not show it, so only 3 carries it in the post header.
 
 ### 1. 776 clean, family colours
 
