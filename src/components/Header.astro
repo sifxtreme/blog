@@ -1,5 +1,8 @@
 ---
-import { SITE_TITLE, CAL_URL } from '../consts';
+import { Image } from 'astro:assets';
+import asifHead from '../assets/asif-head.png';
+import { SITE_TITLE, CAL_URL, DESIGN, OWL_ENABLED } from '../consts';
+import Owl from './Owl.astro';
 import HeaderLink from './HeaderLink.astro';
 
 const SOCIALS = {
@@ -11,7 +14,11 @@ const SOCIALS = {
 
 <header>
 	<nav>
-		<a class="site-title" href="/">{SITE_TITLE}</a>
+		<a class="site-title" href="/">
+			{DESIGN === 'ledger' && OWL_ENABLED && <Owl class="brand-owl" height={30} />}
+			{DESIGN === 'ledger' && <Image class="brand-me" src={asifHead} alt="" width={32} height={32} densities={[1, 2]} />}
+			{SITE_TITLE}
+		</a>
 		<div class="internal-links">
 			<HeaderLink href="/">Home</HeaderLink>
 			<HeaderLink href="/blog">Writing</HeaderLink>

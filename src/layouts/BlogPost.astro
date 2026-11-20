@@ -6,6 +6,7 @@ import { DESIGN } from '../consts';
 import ClassicPost from '../designs/classic/Post.astro';
 import ReceiptPost from '../designs/receipt/Post.astro';
 import TransitPost from '../designs/transit/Post.astro';
+import LedgerPost from '../designs/ledger/Post.astro';
 
 type Props = CollectionEntry<'blog'>['data'] & {
 	ogImagePath?: string;
@@ -13,7 +14,7 @@ type Props = CollectionEntry<'blog'>['data'] & {
 	body?: string;
 };
 
-const Post = { classic: ClassicPost, receipt: ReceiptPost, transit: TransitPost }[DESIGN];
+const Post = { classic: ClassicPost, receipt: ReceiptPost, transit: TransitPost, ledger: LedgerPost }[DESIGN];
 ---
 
 <Post {...Astro.props}><slot /></Post>

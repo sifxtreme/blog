@@ -4,8 +4,9 @@ import { DESIGN } from '../consts';
 import ClassicHome from '../designs/classic/Home.astro';
 import ReceiptHome from '../designs/receipt/Home.astro';
 import TransitHome from '../designs/transit/Home.astro';
+import LedgerHome from '../designs/ledger/Home.astro';
 
-const Home = { classic: ClassicHome, receipt: ReceiptHome, transit: TransitHome }[DESIGN];
+const Home = { classic: ClassicHome, receipt: ReceiptHome, transit: TransitHome, ledger: LedgerHome }[DESIGN];
 ---
 
 <Home />

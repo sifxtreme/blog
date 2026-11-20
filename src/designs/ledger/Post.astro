@@ -1,0 +1,148 @@
+---
+// Ledger design, post layout. Same props and parts as the other designs (AI + Pangram
+// badges, problem, series nav, Copy for LLM, share, diagrams) with the build receipt
+// printed at the end as dotted-leader lines and the owl as the sign-off.
+import { Image } from 'astro:assets';
+import type { CollectionEntry } from 'astro:content';
+import AIBadge from '../../components/AIBadge.astro';
+import BaseHead from '../../components/BaseHead.astro';
+import CopyForLLM from '../../components/CopyForLLM.astro';
+import Footer from '../../components/Footer.astro';
+import FormattedDate from '../../components/FormattedDate.astro';
+import Header from '../../components/Header.astro';
+import ImageZoom from '../../components/ImageZoom.astro';
+import Owl from '../../components/Owl.astro';
+import PangramBadge from '../../components/PangramBadge.astro';
+import SeriesNav from '../../components/SeriesNav.astro';
+import ShareButtons from '../../components/ShareButtons.astro';
+import { OWL_ENABLED } from '../../consts';
+
+type Props = CollectionEntry<'blog'>['data'] & {
+	ogImagePath?: string;
+	slug?: string;
+	body?: string;
+};
+
+const {
+	title,
+	description,
+	problem,
+	pubDate,
+	updatedDate,
+	heroImage,
+	aiUsage,
+	link,
+	telemetry: t,
+	pangram,
+	series,
+	ogImagePath,
+	slug,
+	body,
+} = Astro.props;
+const linkHost = link ? new URL(link).hostname.replace(/^www\./, '') : null;
+const canonicalUrl = slug ? new URL(`/blog/${slug}/`, Astro.site).href : undefined;
+const SIGN = {
+	handwritten: 'Written by hand. Claude only shipped it.',
+	dictated: 'Spoken, then transcribed by AI. The words are mine.',
+	assisted: 'Written by Asif, with Claude.',
+	'ai-written': 'Written by Claude, from my notes.',
+}[aiUsage];
+const live = t ? (t.liveAfterMin < 1 ? 'under 1 min' : `${t.liveAfterMin} min`) : '';
+// Headline full stop in gold: only when the title does not already end in punctuation.
+const stop = !/[.?!:)'"”]$/.test(title);
+---
+
+<html lang="en">
+	<head>
+		<BaseHead title={title} description={description} ogImagePath={ogImagePath} />
+	</head>
+
+	<body>
+		<Header />
+		<main class="l-post">
+			<article>
+				{
+					heroImage && (
+						<div class="l-hero-image">
+							<Image width={1020} height={510} src={heroImage} alt="" />
+						</div>
+					)
+				}
+				<div class="l-label">Writing · <FormattedDate date={pubDate} /></div>
+				<h1>{title}{stop && <i class="l-stop">.</i>}</h1>
+				{
+					link && (
+						<a class="l-source" href={link} target="_blank" rel="noopener">
+							↗ Read the original on {linkHost}
+						</a>
+					)
+				}
+				{
+					problem && (
+						<aside class="l-problem">
+							<span class="l-label">The question I could not answer</span>
+							<p>{problem}</p>
+						</aside>
+					)
+				}
+				<div class="l-meta">
+					<AIBadge usage={aiUsage} />
+					<PangramBadge pangram={pangram} />
+					{t && <span><b>{t.turns}</b> turns</span>}
+					{
+						updatedDate && (
+							<span class="upd">
+								Updated <FormattedDate date={updatedDate} />
+							</span>
+						)
+					}
+					{
+						body && canonicalUrl && (
+							<CopyForLLM title={title} description={description} url={canonicalUrl} body={body} />
+						)
+					}
+				</div>
+
+				<div class="l-prose">
+					{series && slug && <SeriesNav name={series.name} part={series.part} currentSlug={slug} variant="top" />}
+					<slot />
+					{series && slug && <SeriesNav name={series.name} part={series.part} currentSlug={slug} variant="bottom" />}
+					{canonicalUrl && <ShareButtons title={title} url={canonicalUrl} />}
+				</div>
+
+				{
+					t && (
+						<section class="l-rcpt" aria-label="How this post was made">
+							<div class="l-rcpt-top">
+								<span class="l-label">The receipt</span>
+								<span class="l-label"><FormattedDate date={pubDate} /></span>
+							</div>
+							<div class="l-rl"><span>Model</span><i /><b>{t.model}{t.ccVersion ? ` (${t.ccVersion})` : ''}</b></div>
+							<div class="l-rl"><span>Instructions I gave</span><i /><b>{t.instructions}</b></div>
+							<div class="l-rl"><span>Turns</span><i /><b>{t.turns}</b></div>
+							<div class="l-rl"><span>Tool calls</span><i /><b>{t.toolCalls}</b></div>
+							{t.compacts > 0 && <div class="l-rl"><span>Compactions</span><i /><b>{t.compacts}</b></div>}
+							<div class="l-rl"><span>Redeploys</span><i /><b>{t.redeploys}</b></div>
+							<div class="l-rl"><span>Live after</span><i /><b>{live}</b></div>
+							{t.phoneRelayed && <div class="l-rl"><span>Driven from</span><i /><b>my phone</b></div>}
+							{
+								pangram && (
+									<>
+										<div class="l-rl"><span>Pangram {pangram.model} · checked {pangram.checkedOn}</span><i /><b>{pangram.human}% human · {pangram.ai}% AI</b></div>
+										<div class="l-rl sum"><span>Pangram verdict</span><i /><b>{pangram.verdict}</b></div>
+									</>
+								)
+							}
+						</section>
+					)
+				}
+				<div class="l-sign">
+					{OWL_ENABLED && <Owl height={44} />}
+					<span>{SIGN} No ads, no tracking beyond a page view.</span>
+				</div>
+			</article>
+		</main>
+		<Footer />
+		<ImageZoom />
+	</body>
+</html>

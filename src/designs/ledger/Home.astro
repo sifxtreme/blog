@@ -1,0 +1,138 @@
+---
+// Ledger design, homepage. The writing list is a ledger: date, title, how it was made,
+// turns. The "how this blog was made" panel is computed from the real posts. Styles live
+// in src/styles/ledger.css (linked by BaseHead when DESIGN is 'ledger').
+import { getCollection } from 'astro:content';
+import BaseHead from '../../components/BaseHead.astro';
+import Footer from '../../components/Footer.astro';
+import Header from '../../components/Header.astro';
+import { CAL_URL, SITE_DESCRIPTION, SITE_TITLE } from '../../consts';
+import { getWriting, type Post } from '../../series';
+
+const { blocks } = await getWriting();
+const all = await getCollection('blog');
+
+const USAGES = [
+	{ key: 'handwritten', label: 'by hand' },
+	{ key: 'dictated', label: 'dictated' },
+	{ key: 'assisted', label: 'with AI' },
+	{ key: 'ai-written', label: 'by AI' },
+] as const;
+const LABEL = Object.fromEntries(USAGES.map((u) => [u.key, u.label])) as Record<string, string>;
+const counts = USAGES.map((u) => ({ ...u, n: all.filter((p) => p.data.aiUsage === u.key).length })).filter(
+	(u) => u.n > 0,
+);
+const totalTurns = all.reduce((sum, p) => sum + (p.data.telemetry?.turns ?? 0), 0);
+
+// "I help people and solve problems. Lately ..." -> headline + the rest.
+const [first, ...rest] = SITE_DESCRIPTION.split(/(?<=\.)\s+/);
+const headline = first.replace(/\.$/, '');
+
+const newestYear = Math.max(...all.map((p) => p.data.pubDate.getUTCFullYear()));
+const date = (p: Post) => {
+	const d = p.data.pubDate;
+	const md = d.toLocaleDateString('en-us', { month: 'short', day: '2-digit', timeZone: 'UTC' });
+	return d.getUTCFullYear() === newestYear ? md : `${md} '${String(d.getUTCFullYear()).slice(2)}`;
+};
+const href = (p: Post) => p.data.link ?? `/blog/${p.id}/`;
+const ext = (p: Post) => (p.data.link ? { target: '_blank', rel: 'noopener' } : {});
+const turns = (p: Post) => p.data.telemetry?.turns ?? '—';
+
+const MAKING = [
+	{
+		title: 'Printable math worksheets',
+		href: 'https://math.sifxtreme.com',
+		desc: 'Free word problems and drills for 3rd to 5th grade, plus step-through animations of long division. Sized to five minutes. No signup, no ads.',
+	},
+	{
+		title: 'Type Quest',
+		href: 'https://typing.sifxtreme.com',
+		desc: 'A touch-typing tutor that shows the finger coming back to the home row. One page, no signup, no ads.',
+	},
+	{
+		title: 'Personal Assistant Recipes',
+		href: 'https://recipes.sifxtreme.com',
+		desc: "Real things I've had a personal AI do, written out as recipes you can copy. No signup, no ads.",
+	},
+];
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<BaseHead title={SITE_TITLE} description={SITE_DESCRIPTION} />
+	</head>
+	<body>
+		<Header />
+		<main class="l-home">
+			<section class="l-hero">
+				<div>
+					<h1>{headline}<i class="l-stop">.</i></h1>
+					<p>{rest.join(' ')} Every post here says how much of it the AI wrote, and what it cost to make.</p>
+					<p><a href={CAL_URL} target="_blank" rel="noopener">Book 15 minutes with me</a> to talk tech or philosophy or leadership.</p>
+				</div>
+				<aside class="l-tally" aria-label="How this blog was made">
+					<span class="l-label">How this blog was made</span>
+					<div class="l-big">{totalTurns.toLocaleString('en-US')} turns</div>
+					<div class="l-bar" aria-hidden="true">
+						{counts.map((u) => <i class="l-dot" data-usage={u.key} style={`flex:${u.n};width:auto;height:8px;margin:0;border-radius:1px`} />)}
+					</div>
+					{
+						counts.map((u) => (
+							<div class="l-leg">
+								<span><i class="l-dot" data-usage={u.key} />{u.label}</span>
+								<b>{u.n}</b>
+							</div>
+						))
+					}
+					<a class="l-more" href="/how-these-are-written/">How these are written →</a>
+				</aside>
+			</section>
+
+			<section class="l-ledger" aria-label="Writing">
+				<div class="l-lh l-label"><span>Date</span><span>Writing</span><span>Made</span><span>Turns</span></div>
+				{
+					blocks.map((b) =>
+						b.kind === 'series' ? (
+							<div class="l-sgrp">
+								<span class="l-label">Series · {b.group.parts.length} parts</span>
+								<div class="nm">{b.group.name}</div>
+								{b.group.blurb && <p>{b.group.blurb}</p>}
+								{b.group.parts.map((p) => (
+									<a class="l-lr" href={href(p)} {...ext(p)}>
+										<span class="d">{date(p)}</span>
+										<span class="t">{p.data.title}{p.data.link && <span class="ext"> ↗</span>}</span>
+										<span class="h"><i class="l-dot" data-usage={p.data.aiUsage} />{LABEL[p.data.aiUsage]}</span>
+										<span class="n">{turns(p)}</span>
+									</a>
+								))}
+							</div>
+						) : (
+							b.posts.map((p) => (
+								<a class="l-lr" href={href(p)} {...ext(p)}>
+									<span class="d">{date(p)}</span>
+									<span class="t">{p.data.title}{p.data.link && <span class="ext"> ↗</span>}</span>
+									<span class="h"><i class="l-dot" data-usage={p.data.aiUsage} />{LABEL[p.data.aiUsage]}</span>
+									<span class="n">{turns(p)}</span>
+								</a>
+							))
+						)
+					)
+				}
+			</section>
+
+			<section class="l-making" aria-label="Making">
+				{
+					MAKING.map((m) => (
+						<div class="l-tile">
+							<span class="l-label">Making</span>
+							<b><a href={m.href} target="_blank" rel="noopener">{m.title} ↗</a></b>
+							<span class="x">{m.desc}</span>
+						</div>
+					))
+				}
+			</section>
+		</main>
+		<Footer />
+	</body>
+</html>

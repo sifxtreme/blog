@@ -1,0 +1,44 @@
+---
+// The family owl mark, a transparent standalone PNG in two inks: navy for the light
+// theme, cream for dark (swapped by CSS on html[data-theme]). Gated by OWL_ENABLED in
+// consts.ts; when that is false the callers render nothing. See consts.ts.
+import { Image } from 'astro:assets';
+import cream from '../assets/owl-cream.png';
+import navy from '../assets/owl-navy.png';
+
+interface Props {
+	height: number;
+	class?: string;
+}
+const { height, class: cls } = Astro.props;
+// The art is 0.745 wide per unit of height.
+const width = Math.round(height * 0.745);
+---
+
+<span class:list={['owl', cls]} aria-hidden="true" style={`height:${height}px;width:${width}px`}>
+	<Image class="owl-navy" src={navy} alt="" width={width} height={height} densities={[1, 2]} />
+	<Image class="owl-cream" src={cream} alt="" width={width} height={height} densities={[1, 2]} />
+</span>
+
+<style>
+	.owl {
+		display: inline-block;
+		flex: none;
+		line-height: 0;
+	}
+	.owl :global(img) {
+		border-radius: 0;
+		height: 100%;
+		width: 100%;
+		display: block;
+	}
+	.owl-cream {
+		display: none !important;
+	}
+	:global(html[data-theme='dark']) .owl-navy {
+		display: none !important;
+	}
+	:global(html[data-theme='dark']) .owl-cream {
+		display: block !important;
+	}
+</style>
