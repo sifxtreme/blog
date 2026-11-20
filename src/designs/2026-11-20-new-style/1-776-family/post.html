@@ -1,0 +1,37 @@
+<!doctype html><html lang="en"><head><title>An old Claude Code rejected my settings</title><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="../shared/fonts.css"><link rel="stylesheet" href="style.css"></head><body><div class="wrap"><header class="top"><a class="brand" href="#"><span class="seal-full"></span>Asif Ahmed</a><nav><a class="on" href="#">Writing</a><a href="#">Making</a><a href="#">About</a></nav></header>
+<article><div class="crumb label">Writing · Jul 13, 2026</div>
+<h1 class="title">An old Claude Code rejected my settings and deleted 2,055 sessions<i>.</i></h1>
+<div class="problem"><span class="label">The question</span><p>Prevent an old Claude binary from deleting sessions after rejecting settings.</p></div>
+<div class="byline"><span>Written <b>with AI</b></span><span>Tags <b>claude · postmortem</b></span><span>83 turns</span></div>
+<p class="lead">Four days ago I published a post that said: Claude Code deletes your session transcripts after 30 days, so <a href="#">change one setting and they stick around for a year</a>.</p>
+<p>I had changed the setting. It said 365.</p>
+<p>Today I went looking for a session from May and there wasn't one. There was nothing from May at all. Nothing from April either. The oldest transcript on my machine was from June 13, exactly thirty days ago, and the same was true on my other machine.</p>
+<p><b class="num">2,055</b> sessions, dated March 27 through June 12. That number is the count of records in my search index whose transcript file no longer exists on disk. No Time Machine, no snapshots, nothing recoverable.</p>
+<h2>The setting was set</h2>
+<p>This is what made it feel impossible.</p>
+<p><code>~/.claude/settings.json</code> said <code>"cleanupPeriodDays": 365</code>. Valid JSON. No managed-settings file, no project override. And I could prove its history, because a nightly job commits that file to git: it was 90 from May 20 to July 9, then 365. Never absent. Never 30.</p>
+<p>Thirty is not a number I picked. Thirty is the number Claude Code falls back to when the setting isn't there. So whatever was doing this wasn't overriding my setting. It was never seeing it.</p>
+<h2>The cause</h2>
+<p>My agent stack runs on the Claude Agent SDK, pinned to <code>@anthropic-ai/claude-code@1.0.128</code>. So while my laptop runs Claude Code 2.1.207, my agent has quietly been running a build from a different era against the same <code>~/.claude</code>. And 1.0.128 cannot parse my settings file.</p>
+<p>When validation fails, the loader doesn't discard the key it didn't like. It discards the entire file:</p>
+<pre><code><span class="c">// paraphrased from the 1.0.128 bundle</span>
+const parsed = schema.safeParse(raw)
+if (!parsed.success) return { settings: null, errors: [...] }</code></pre>
+<figure>
+<svg viewBox="0 0 776 208" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Two lanes reading one settings file. The current Claude keeps sessions for 365 days. The old Claude throws the file away and deletes after 30 days."><defs><marker id="dg-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="context-stroke"/></marker></defs>
+<path class="d-edge d-accent" d="M180 90 C230 72 244 62 268 60" marker-end="url(#dg-arrow)"/><path class="d-edge d-accent" d="M474 58 L512 58" marker-end="url(#dg-arrow)"/>
+<path class="d-edge d-dash" d="M180 118 C230 136 244 146 268 148" marker-end="url(#dg-arrow)"/><path class="d-edge d-dash" d="M474 148 L512 148" marker-end="url(#dg-arrow)"/>
+<rect class="d-card" x="24" y="76" width="156" height="58" rx="6"/><text class="d-txt" x="102" y="101" text-anchor="middle" font-size="14">settings file</text><text class="d-txt d-sub" x="102" y="120" text-anchor="middle" font-size="11.5">keep 365 days</text>
+<rect class="d-card d-accent" x="270" y="30" width="204" height="56" rx="6"/><text class="d-txt d-accent" x="372" y="54" text-anchor="middle" font-size="14">laptop, current Claude</text><text class="d-txt d-sub" x="372" y="72" text-anchor="middle" font-size="11.5">understands every key</text>
+<rect class="d-card d-accent" x="514" y="30" width="176" height="56" rx="6"/><text class="d-txt d-accent" x="602" y="63" text-anchor="middle" font-size="14">keeps 365 days</text>
+<rect class="d-card d-dim" x="270" y="120" width="204" height="56" rx="6"/><text class="d-txt" x="372" y="144" text-anchor="middle" font-size="14">agent, old Claude</text><text class="d-txt d-sub" x="372" y="162" text-anchor="middle" font-size="11.5">hits a key it never heard of</text>
+<rect class="d-card d-dim" x="514" y="120" width="176" height="56" rx="6"/><text class="d-txt" x="602" y="144" text-anchor="middle" font-size="13.5">throws the file away</text><text class="d-txt d-sub" x="602" y="162" text-anchor="middle" font-size="11.5">deletes after 30 days</text></svg>
+<figcaption>Same file. Two readers. Only one of them throws it away.</figcaption></figure>
+<h2>The reproduction</h2>
+<p>Three runs, three settings files. The new file always survives, so this is age-based, not a blanket wipe. The old file dies only when the hooks block is there.</p>
+<pre><code>my real settings.json         OLD-200d = DELETED   NEW-today = alive
+same, with hooks removed      OLD-200d = alive     NEW-today = alive
+{ cleanupPeriodDays: 365 }    OLD-200d = alive     NEW-today = alive</code></pre>
+<div class="receipt"><span class="label">The receipt</span><dl><div><dt>Turns</dt><dd>83</dd></div><div><dt>Live after</dt><dd>31 min</dd></div><div><dt>Redeploys</dt><dd>14</dd></div><div><dt>Tool calls</dt><dd>35</dd></div></dl><small>claude-opus-4-8 · Claude Code 2.1.207 · Pangram v3.3.2: 100% AI-detected, checked 2026-09-10</small></div>
+</article>
+<footer><span><span class="seal-full"></span>sifxtreme.com · est. 2026</span><span>Every post says how AI was used.</span></footer></div></body></html>
